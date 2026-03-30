@@ -270,10 +270,27 @@ function renderAnnual() {
     `).join('');
 
     const summary = yearData.summary;
+    const summaryLabelMap = {
+      nwEur: 'NW (EUR)',
+      nwEurChange: 'NW Change',
+      nwEurPct: 'Change %',
+      nwChf: 'NW (CHF)',
+      nwUsd: 'NW (USD)'
+    };
+    const percentRows = new Set(['nwEurPct']);
+
     const summaryRows = Object.entries(summary).map(([key, values]) => `
       <tr>
-        <td>${key}</td>
-        ${values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
+        <td>${summaryLabelMap[key] || key}</td>
+        ${values.map(v => {
+          if (v === null || v === undefined || v === '') return `<td>-</td>`;
+          if (percentRows.has(key) && typeof v === 'number') {
+            const cls = v >= 0 ? 'delta-pos' : 'delta-neg';
+            return `<td class="${cls}">${pct(v)}</td>`;
+          }
+          if (typeof v === 'number') return `<td>${num(v)}</td>`;
+          return `<td>${v || '-'}</td>`;
+        }).join('')}
       </tr>
     `).join('');
 
