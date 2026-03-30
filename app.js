@@ -126,14 +126,14 @@ function renderDashboard() {
       <article class="panel">
         <h3>Asset Allocation attuale</h3>
         <table>
-          <thead><tr><th>Asset</th><th>Current</th><th>Target</th><th>Delta</th></tr></thead>
+          <thead><tr><th>Asset</th><th>Current</th><th>Target</th><th>Gap vs target</th></tr></thead>
           <tbody>
             ${data.allocationMacro.map(row => `
               <tr>
                 <td>${row.asset}</td>
                 <td>${euro(row.current)}</td>
                 <td>${pct(row.targetPct)}</td>
-                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta > 0 ? '+' : ''}${euro(row.delta)}</td>
+                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -188,7 +188,7 @@ function renderAllocation() {
         <h3>Macro Allocation</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Asset</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
+            <thead><tr><th>Asset</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Gap vs target</th></tr></thead>
             <tbody>
               ${data.allocationMacro.map(row => `
                 <tr>
@@ -196,7 +196,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${euro(row.targetEur)}</td>
-                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta > 0 ? '+' : ''}${euro(row.delta)}</td>
+                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -207,7 +207,7 @@ function renderAllocation() {
         <h3>Dettaglio Allocation</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Gruppo</th><th>Asset</th><th>Ticker</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
+            <thead><tr><th>Gruppo</th><th>Asset</th><th>Ticker</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Gap vs target</th></tr></thead>
             <tbody>
               ${data.allocationDetail.map(row => `
                 <tr>
@@ -217,7 +217,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${row.targetEur === null ? '-' : euro(row.targetEur)}</td>
-                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : `${row.delta > 0 ? '+' : ''}${euro(row.delta)}`}</td>
+                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -508,6 +508,7 @@ const PORTFOLIO_OVERRIDES_KEY = 'wealth-os-portfolio-overrides';
 const ALLOCATION_OVERRIDES_KEY = 'wealth-os-allocation-overrides';
 const POSITION_HISTORY_KEY = 'wealth-os-position-history';
 const WATCHLIST_KEY = 'wealth-os-watchlist';
+const ALLOCATION_TARGETS_KEY = 'wealth-os-allocation-targets';
 
 viewMeta.positions = ['Posizioni', 'Quote, prezzo, valore e peso delle posizioni correnti.'];
 viewMeta.watchlist = ['Watchlist', 'Tracking manuale dei tuoi strumenti preferiti.'];
@@ -1948,6 +1949,21 @@ function saveJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function loadAllocationTargets() {
+  const defaults = {
+    stocks: Number(data.allocationMacro.find(x => x.asset === 'Stocks')?.targetPct || 0),
+    commodities: Number(data.allocationMacro.find(x => x.asset === 'Commodities')?.targetPct || 0),
+    cash: Number(data.allocationMacro.find(x => x.asset === 'Cash')?.targetPct || 0)
+  };
+  const existing = loadJson(ALLOCATION_TARGETS_KEY, null);
+  if (existing === null) {
+    saveJson(ALLOCATION_TARGETS_KEY, defaults);
+    return defaults;
+  }
+  return { ...defaults, ...existing };
+}
+function saveAllocationTargets(value) { saveJson(ALLOCATION_TARGETS_KEY, value); }
+
 function loadPortfolioOverrides() { return loadJson(PORTFOLIO_OVERRIDES_KEY, []); }
 function savePortfolioOverrides(items) { saveJson(PORTFOLIO_OVERRIDES_KEY, items); }
 
@@ -2052,9 +2068,11 @@ function getCurrentAllocationMacro() {
   const positionRows = getLatestPositionRows();
   const stockTotal = positionRows
     .filter(x => (x.category || '').toLowerCase() === 'stocks')
-    .reduce((sum, x) => sum + x.value, 0);
+    .reduce((sum, x) => sum + Number(x.value || 0), 0);
 
   const overrides = loadAllocationOverrides().sort((a, b) => b.date.localeCompare(a.date));
+  const targets = loadAllocationTargets();
+
   let values = {
     stocks: stockTotal || Number(baseRows.find(x => x.asset === 'Stocks')?.current || 0),
     commodities: Number(baseRows.find(x => x.asset === 'Commodities')?.current || 0),
@@ -2070,13 +2088,20 @@ function getCurrentAllocationMacro() {
     };
   }
 
+  const totalCurrent = Number(values.stocks || 0) + Number(values.commodities || 0) + Number(values.cash || 0);
+
   return baseRows.map(row => {
     const key = row.asset.toLowerCase();
-    const current = key in values ? values[key] : Number(row.current || 0);
+    const current = key in values ? Number(values[key] || 0) : Number(row.current || 0);
+    const targetPct = key in targets ? Number(targets[key] || 0) : Number(row.targetPct || 0);
+    const targetEur = totalCurrent * targetPct;
+
     return {
       ...row,
       current,
-      delta: current - Number(row.targetEur || 0)
+      targetPct,
+      targetEur,
+      delta: targetEur - current
     };
   });
 }
@@ -2310,6 +2335,31 @@ function renderUpdates() {
         ${latestAllocation ? `<p class="success-msg">Ultimo cash/commodities: ${latestAllocation.date}</p>` : ''}
       </article>
 
+
+      <article class="form-card">
+        <h3>Target Asset Allocation</h3>
+        <div class="helper">Modifica direttamente dal sito i target percentuali di Stocks, Commodities e Cash. Usa valori decimali: 0.60 = 60%.</div>
+        <form id="allocationTargetsForm" class="form-grid">
+          <label>
+            Target Stocks
+            <input type="number" id="targetStocks" step="0.0001" min="0" max="1" required />
+          </label>
+          <label>
+            Target Commodities
+            <input type="number" id="targetCommodities" step="0.0001" min="0" max="1" required />
+          </label>
+          <label>
+            Target Cash
+            <input type="number" id="targetCash" step="0.0001" min="0" max="1" required />
+          </label>
+          <div></div>
+          <div class="full form-actions">
+            <button type="submit">Salva target allocation</button>
+          </div>
+        </form>
+        <p class="success-msg">Target correnti: Stocks <span id="targetStocksLabel"></span> · Commodities <span id="targetCommoditiesLabel"></span> · Cash <span id="targetCashLabel"></span></p>
+      </article>
+
       <article class="form-card">
         <h3>Watchlist / Strumenti preferiti</h3>
         <div class="helper">Aggiungi o aggiorna manualmente i tuoi strumenti monitorati.</div>
@@ -2422,6 +2472,32 @@ function renderUpdates() {
     const items = loadAllocationOverrides().filter(x => x.date !== date);
     items.push(item);
     saveAllocationOverrides(items);
+    rerenderAll();
+    setView('updates');
+  });
+
+
+  const currentTargets = loadAllocationTargets();
+  document.getElementById('targetStocks').value = currentTargets.stocks;
+  document.getElementById('targetCommodities').value = currentTargets.commodities;
+  document.getElementById('targetCash').value = currentTargets.cash;
+  document.getElementById('targetStocksLabel').textContent = pct(currentTargets.stocks);
+  document.getElementById('targetCommoditiesLabel').textContent = pct(currentTargets.commodities);
+  document.getElementById('targetCashLabel').textContent = pct(currentTargets.cash);
+
+  document.getElementById('allocationTargetsForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const stocks = Number(document.getElementById('targetStocks').value);
+    const commodities = Number(document.getElementById('targetCommodities').value);
+    const cash = Number(document.getElementById('targetCash').value);
+    const total = stocks + commodities + cash;
+
+    if (Math.abs(total - 1) > 0.0001) {
+      alert('La somma dei target deve essere 1.00, cioè 100%.');
+      return;
+    }
+
+    saveAllocationTargets({ stocks, commodities, cash });
     rerenderAll();
     setView('updates');
   });
