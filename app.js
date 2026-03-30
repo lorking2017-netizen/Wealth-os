@@ -133,7 +133,7 @@ function renderDashboard() {
                 <td>${row.asset}</td>
                 <td>${euro(row.current)}</td>
                 <td>${pct(row.targetPct)}</td>
-                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
+                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta > 0 ? '+' : ''}${euro(row.delta)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -196,7 +196,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${euro(row.targetEur)}</td>
-                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
+                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta > 0 ? '+' : ''}${euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -217,7 +217,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${row.targetEur === null ? '-' : euro(row.targetEur)}</td>
-                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : euro(row.delta)}</td>
+                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : `${row.delta > 0 ? '+' : ''}${euro(row.delta)}`}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -2076,7 +2076,7 @@ function getCurrentAllocationMacro() {
     return {
       ...row,
       current,
-      delta: Number(row.targetEur || 0) - current
+      delta: current - Number(row.targetEur || 0)
     };
   });
 }
