@@ -497,18 +497,1425 @@ viewMeta.watchlist = ['Watchlist', 'Tracking manuale dei tuoi strumenti preferit
 viewMeta.updates = ['Aggiornamenti', 'Aggiorna Net Worth, ETF, cash, commodities e watchlist mese per mese.'];
 
 const DEFAULT_WATCHLIST = [
-  { name: 'SWDA', ticker: 'SWDA SW', price: 113.35, ytd: 0.0056, lastMonth: 0.0123, note: 'ETF World' },
-  { name: 'EIMI', ticker: 'EIMI SW', price: 43.51, ytd: 0.0982, lastMonth: 0.0680, note: 'Emerging Markets' },
-  { name: 'Gold', ticker: 'Gold (ounce)', price: 4470.50, ytd: 0.1776, lastMonth: 0.0406, note: 'Monitoraggio oro' },
-  { name: 'Bitcoin', ticker: 'BTC', price: 56850.21, ytd: -0.2800, lastMonth: -0.2329, note: 'Crypto' },
-  { name: 'EURCHF', ticker: 'EURCHF', price: 0.908, ytd: null, lastMonth: null, note: 'FX' },
-  { name: 'EURUSD', ticker: 'EURUSD', price: 1.181, ytd: null, lastMonth: null, note: 'FX' },
-  { name: 'USDCHF', ticker: 'USDCHF', price: 0.769, ytd: null, lastMonth: null, note: 'FX' }
+  {
+    "name": "BIT:iShares Core MSCI World UCITS ETF USD (Acc)",
+    "ticker": "BIT:iShares Core MSCI World UCITS ETF USD (Acc)",
+    "price": 104.99,
+    "ytd": 0.2348859091978357,
+    "lastMonth": -0.006152972358954956,
+    "note": "Importato da 2024"
+  },
+  {
+    "name": "BIT:Core S&P 500 USD (Acc)",
+    "ticker": "BIT:Core S&P 500 USD (Acc)",
+    "price": 608.54,
+    "ytd": 0.2880789094911522,
+    "lastMonth": -0.0037000654878847072,
+    "note": "Importato da 2024"
+  },
+  {
+    "name": "BIT:Core MSCI EM IMI USD (Acc)",
+    "ticker": "BIT:Core MSCI EM IMI USD (Acc)",
+    "price": 33.21,
+    "ytd": 0.17142857142857149,
+    "lastMonth": 0.006363636363636349,
+    "note": "Importato da 2024"
+  },
+  {
+    "name": "Gold (ounce)",
+    "ticker": "Gold (ounce)",
+    "price": 4470.5,
+    "ytd": 0.040594958217918586,
+    "lastMonth": 0.040594958217918586,
+    "note": "Importato da 2026"
+  },
+  {
+    "name": "Bitcoin",
+    "ticker": "Bitcoin",
+    "price": 56850.21,
+    "ytd": -0.23292526277441206,
+    "lastMonth": -0.23292526277441206,
+    "note": "Importato da 2026"
+  },
+  {
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "price": 73.92,
+    "ytd": 3.918163672654691,
+    "lastMonth": 0.18708848562710778,
+    "note": "Importato da 2024"
+  },
+  {
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "price": 113.35,
+    "ytd": 0.012324729838349535,
+    "lastMonth": 0.012324729838349535,
+    "note": "Importato da 2026"
+  },
+  {
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "price": 551.04,
+    "ytd": -0.10935833198642331,
+    "lastMonth": 0.04971996799634226,
+    "note": "Importato da 2025"
+  },
+  {
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "price": 43.51,
+    "ytd": 0.06799214531173292,
+    "lastMonth": 0.06799214531173292,
+    "note": "Importato da 2026"
+  },
+  {
+    "name": "EURCHF",
+    "ticker": "EURCHF",
+    "price": 0.928,
+    "ytd": -0.015906680805938378,
+    "lastMonth": -0.0042918454935622075,
+    "note": "Importato da 2025"
+  },
+  {
+    "name": "EURUSD",
+    "ticker": "EURUSD",
+    "price": 1.181,
+    "ytd": -0.0033755274261603185,
+    "lastMonth": -0.0033755274261603185,
+    "note": "Importato da 2026"
+  },
+  {
+    "name": "USDCHF",
+    "ticker": "USDCHF",
+    "price": 0.769,
+    "ytd": -0.01029601029601035,
+    "lastMonth": -0.01029601029601035,
+    "note": "Importato da 2026"
+  }
 ];
 
 const DEFAULT_POSITION_HISTORY = [
-  { date: '2026-02-01', name: 'SWDA', ticker: 'SWDA SW', category: 'Stocks', quotes: 33.22, price: 113.35, currency: 'EUR' },
-  { date: '2026-02-01', name: 'EIMI', ticker: 'EIMI SW', category: 'Stocks', quotes: 22.25, price: 43.51, currency: 'EUR' }
+  {
+    "date": "2024-01-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-02-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-03-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-04-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-05-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 50.0
+  },
+  {
+    "date": "2024-06-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 101.03
+  },
+  {
+    "date": "2024-07-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 145.87
+  },
+  {
+    "date": "2024-08-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 199.7
+  },
+  {
+    "date": "2024-09-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 255.73
+  },
+  {
+    "date": "2024-10-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 309.91
+  },
+  {
+    "date": "2024-11-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 484.24
+  },
+  {
+    "date": "2024-12-01",
+    "name": "Core MSCI World USD (Acc)",
+    "ticker": "Core MSCI World USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 581.0
+  },
+  {
+    "date": "2024-01-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-02-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-03-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-04-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-05-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-07-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 24.68
+  },
+  {
+    "date": "2024-08-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 25.92
+  },
+  {
+    "date": "2024-09-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 126.61
+  },
+  {
+    "date": "2024-10-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 229.62
+  },
+  {
+    "date": "2024-11-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 301.26
+  },
+  {
+    "date": "2024-12-01",
+    "name": "Core S&P 500 USD (Acc)",
+    "ticker": "Core S&P 500 USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 325.11
+  },
+  {
+    "date": "2024-01-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-02-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-03-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-04-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-05-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-07-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 24.81
+  },
+  {
+    "date": "2024-08-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 25.56
+  },
+  {
+    "date": "2024-09-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 126.61
+  },
+  {
+    "date": "2024-10-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 223.11
+  },
+  {
+    "date": "2024-11-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 274.74
+  },
+  {
+    "date": "2024-12-01",
+    "name": "Core MSCI EM IMI USD (Acc)",
+    "ticker": "Core MSCI EM IMI USD (Acc)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 301.6
+  },
+  {
+    "date": "2024-01-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-02-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-03-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-04-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-05-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-07-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-08-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-09-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-10-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-11-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-12-01",
+    "name": "Palantir Technologies, Inc.",
+    "ticker": "Palantir Technologies, Inc.",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 501.27
+  },
+  {
+    "date": "2024-01-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-02-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-03-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-04-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-05-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-07-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-08-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-09-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-10-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-11-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2024-12-01",
+    "name": "Bitcoin EUR (BTC-EUR)",
+    "ticker": "Bitcoin EUR (BTC-EUR)",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 1150.98
+  },
+  {
+    "date": "2025-01-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 952.06
+  },
+  {
+    "date": "2025-02-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 1004.78
+  },
+  {
+    "date": "2025-03-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 963.48
+  },
+  {
+    "date": "2025-04-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 941.65
+  },
+  {
+    "date": "2025-05-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 2050.16
+  },
+  {
+    "date": "2025-06-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 2217.19
+  },
+  {
+    "date": "2025-07-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 2463.81
+  },
+  {
+    "date": "2025-08-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 1991.3
+  },
+  {
+    "date": "2025-09-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 2299.18
+  },
+  {
+    "date": "2025-10-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 2395.53
+  },
+  {
+    "date": "2025-11-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 3080.87
+  },
+  {
+    "date": "2025-12-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 3118.23
+  },
+  {
+    "date": "2025-01-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 682.49
+  },
+  {
+    "date": "2025-02-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 689.86
+  },
+  {
+    "date": "2025-03-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 656.41
+  },
+  {
+    "date": "2025-04-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 633.97
+  },
+  {
+    "date": "2025-05-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-06-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-07-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-08-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-09-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-10-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-11-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-12-01",
+    "name": "CSSPX SW",
+    "ticker": "CSSPX SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-01-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 386.49
+  },
+  {
+    "date": "2025-02-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 428.08
+  },
+  {
+    "date": "2025-03-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 428.7
+  },
+  {
+    "date": "2025-04-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 423.36
+  },
+  {
+    "date": "2025-05-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 594.32
+  },
+  {
+    "date": "2025-06-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 690.72
+  },
+  {
+    "date": "2025-07-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 762.63
+  },
+  {
+    "date": "2025-08-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 810.24
+  },
+  {
+    "date": "2025-09-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 592.73
+  },
+  {
+    "date": "2025-10-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 630.7
+  },
+  {
+    "date": "2025-11-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 847.49
+  },
+  {
+    "date": "2025-12-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 881.9
+  },
+  {
+    "date": "2025-01-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 945.61
+  },
+  {
+    "date": "2025-02-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 815.23
+  },
+  {
+    "date": "2025-03-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 771.55
+  },
+  {
+    "date": "2025-04-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 841.0
+  },
+  {
+    "date": "2025-05-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 295.45
+  },
+  {
+    "date": "2025-06-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 299.98
+  },
+  {
+    "date": "2025-07-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 317.71
+  },
+  {
+    "date": "2025-08-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-09-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-10-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 63.53
+  },
+  {
+    "date": "2025-11-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2025-12-01",
+    "name": "BTC",
+    "ticker": "BTC",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-01-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 3269.09
+  },
+  {
+    "date": "2026-02-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 3762.01
+  },
+  {
+    "date": "2026-03-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-04-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-05-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-06-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-07-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-08-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-09-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-10-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-11-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-12-01",
+    "name": "SWDA SW",
+    "ticker": "SWDA SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-01-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 906.28
+  },
+  {
+    "date": "2026-02-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 967.83
+  },
+  {
+    "date": "2026-03-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-04-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-05-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-06-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-07-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-08-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-09-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-10-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-11-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  },
+  {
+    "date": "2026-12-01",
+    "name": "EIMI SW",
+    "ticker": "EIMI SW",
+    "category": "Stocks",
+    "currency": "EUR",
+    "quotes": null,
+    "price": null,
+    "valueOverride": 0.0
+  }
 ];
 
 function loadJson(key, fallback) {
@@ -603,13 +2010,20 @@ function getLatestPositionRows() {
   const items = loadPositionHistory();
   if (!items.length) return [];
   const latestDate = items.map(x => x.date).sort().slice(-1)[0];
-  const latest = items.filter(x => x.date === latestDate).map(x => ({
-    ...x,
-    quotes: Number(x.quotes || 0),
-    price: Number(x.price || 0),
-    value: Number(x.quotes || 0) * Number(x.price || 0)
-  }));
-  const total = latest.reduce((sum, row) => sum + row.value, 0);
+  const latest = items.filter(x => x.date === latestDate).map(x => {
+    const hasManualValue = x.valueOverride !== undefined && x.valueOverride !== null && x.valueOverride !== '';
+    const quotes = (x.quotes === null || x.quotes === undefined || x.quotes === '') ? null : Number(x.quotes);
+    const price = (x.price === null || x.price === undefined || x.price === '') ? null : Number(x.price);
+    const value = hasManualValue ? Number(x.valueOverride) : Number(quotes || 0) * Number(price || 0);
+
+    return {
+      ...x,
+      quotes,
+      price,
+      value
+    };
+  });
+  const total = latest.reduce((sum, row) => sum + Number(row.value || 0), 0);
   return latest.map(row => ({
     ...row,
     weight: total ? row.value / total : 0
@@ -709,8 +2123,8 @@ function renderPositions() {
                 <td>${row.name}</td>
                 <td>${row.ticker || '-'}</td>
                 <td>${row.category || '-'}</td>
-                <td>${num(row.quotes)}</td>
-                <td>${euro(row.price)}</td>
+                <td>${row.quotes === null || row.quotes === undefined ? '-' : num(row.quotes)}</td>
+                <td>${row.price === null || row.price === undefined ? '-' : euro(row.price)}</td>
                 <td>${euro(row.value)}</td>
                 <td>${pct(row.weight)}</td>
                 <td>${row.currency || 'EUR'}</td>
@@ -774,7 +2188,11 @@ function renderUpdates() {
   const latestAllocation = allocationOverrides[0];
   const latestPositionDate = positionHistory[0]?.date || '';
   const latestMonthPositions = latestPositionDate ? positionHistory.filter(x => x.date === latestPositionDate) : [];
-  const totalLatestPositions = latestMonthPositions.reduce((sum, x) => sum + Number(x.quotes || 0) * Number(x.price || 0), 0);
+  const totalLatestPositions = latestMonthPositions.reduce((sum, x) => {
+    const hasManualValue = x.valueOverride !== undefined && x.valueOverride !== null && x.valueOverride !== '';
+    const value = hasManualValue ? Number(x.valueOverride) : Number(x.quotes || 0) * Number(x.price || 0);
+    return sum + value;
+  }, 0);
 
   document.getElementById('updates').innerHTML = `
     <div class="notice">
@@ -808,7 +2226,7 @@ function renderUpdates() {
 
       <article class="form-card">
         <h3>Posizioni ETF / Azioni</h3>
-        <div class="helper">Inserisci quote e prezzo. Il sito calcola valore e totale Stocks.</div>
+        <div class="helper">I dati storici del file sono già importati. Per i nuovi mesi puoi inserire quote e prezzo; per quelli importati il valore arriva direttamente dallo spreadsheet.</div>
         <form id="positionUpdateForm" class="form-grid">
           <label>
             Mese
@@ -924,9 +2342,9 @@ function renderUpdates() {
                   <td>${item.name}</td>
                   <td>${item.ticker || '-'}</td>
                   <td>${item.category || '-'}</td>
-                  <td>${num(item.quotes)}</td>
-                  <td>${euro(item.price)}</td>
-                  <td>${euro(Number(item.quotes || 0) * Number(item.price || 0))}</td>
+                  <td>${item.quotes === null || item.quotes === undefined ? '-' : num(item.quotes)}</td>
+                  <td>${item.price === null || item.price === undefined ? '-' : euro(item.price)}</td>
+                  <td>${euro((item.valueOverride !== undefined && item.valueOverride !== null && item.valueOverride !== '') ? Number(item.valueOverride) : Number(item.quotes || 0) * Number(item.price || 0))}</td>
                   <td><button class="secondary" data-delete-position="${item.date}__${item.name}__${idx}">Elimina</button></td>
                 </tr>
               `).join('') : '<tr><td colspan="8" class="empty-state">Nessuna posizione nell’ultimo mese.</td></tr>'}
