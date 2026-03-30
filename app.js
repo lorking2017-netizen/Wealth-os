@@ -478,7 +478,12 @@ function renderFinance() {
   });
 }
 
-
+renderDashboard();
+renderPortfolio();
+renderAllocation();
+renderAnnual();
+renderSterline();
+renderFinance();
 
 
 const PORTFOLIO_OVERRIDES_KEY = 'wealth-os-portfolio-overrides';
@@ -487,23 +492,29 @@ const ALLOCATION_OVERRIDES_KEY = 'wealth-os-allocation-overrides';
 viewMeta.updates = ['Aggiornamenti', 'Inserisci l’aggiornamento mensile senza perdere grafici e dati storici.'];
 
 function loadPortfolioOverrides() {
-  return JSON.parse(localStorage.getItem(PORTFOLIO_OVERRIDES_KEY) || '[]');
+  try { return JSON.parse(localStorage.getItem(PORTFOLIO_OVERRIDES_KEY) || '[]'); }
+  catch { return []; }
 }
 function savePortfolioOverrides(items) {
   localStorage.setItem(PORTFOLIO_OVERRIDES_KEY, JSON.stringify(items));
 }
 function loadAllocationOverrides() {
-  return JSON.parse(localStorage.getItem(ALLOCATION_OVERRIDES_KEY) || '[]');
+  try { return JSON.parse(localStorage.getItem(ALLOCATION_OVERRIDES_KEY) || '[]'); }
+  catch { return []; }
 }
 function saveAllocationOverrides(items) {
   localStorage.setItem(ALLOCATION_OVERRIDES_KEY, JSON.stringify(items));
 }
 
+function safeMonthToDate(monthValue) {
+  return monthValue ? `${monthValue}-01` : '';
+}
+
 function getMergedPortfolioHistory() {
-  const baseItems = [...data.portfolioHistory];
-  const overrides = loadPortfolioOverrides();
-  const byDate = new Map(baseItems.map(item => [item.date, { ...item }]));
-  overrides.forEach(item => {
+  const byDate = new Map();
+  data.portfolioHistory.forEach(item => byDate.set(item.date, { ...item }));
+  loadPortfolioOverrides().forEach(item => {
+    if (!item.date) return;
     byDate.set(item.date, {
       date: item.date,
       netWorth: Number(item.netWorth || 0),
@@ -513,42 +524,48 @@ function getMergedPortfolioHistory() {
       runningMax: 0,
       drawdown: 0,
       year: new Date(item.date).getFullYear(),
-      month: new Date(item.date).getMonth() + 1,
-      source: 'override'
+      month: new Date(item.date).getMonth() + 1
     });
   });
 
   const merged = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
-
   let runningMax = 0;
   let cumFactor = 1;
 
   merged.forEach((item, idx) => {
-    const prev = merged[idx - 1];
+    const currentNW = Number(item.netWorth || 0);
     if (idx === 0) {
       item.return = Number(item.return || 0);
-      cumFactor = 1 + Number(item.return || 0);
+      cumFactor = 1 + item.return;
     } else {
-      item.return = prev.netWorth ? ((Number(item.netWorth) - Number(prev.netWorth)) / Number(prev.netWorth)) : 0;
+      const prevNW = Number(merged[idx - 1].netWorth || 0);
+      item.return = prevNW ? ((currentNW - prevNW) / prevNW) : 0;
       cumFactor *= (1 + item.return);
     }
     item.cumReturn = cumFactor - 1;
-    runningMax = Math.max(runningMax, Number(item.netWorth || 0));
+    runningMax = Math.max(runningMax, currentNW);
     item.runningMax = runningMax;
-    item.drawdown = runningMax ? ((Number(item.netWorth || 0) - runningMax) / runningMax) : 0;
-    item.year = new Date(item.date).getFullYear();
-    item.month = new Date(item.date).getMonth() + 1;
+    item.drawdown = runningMax ? ((currentNW - runningMax) / runningMax) : 0;
   });
 
   return merged;
 }
 
 function getCurrentAllocationMacro() {
-  const overrides = loadAllocationOverrides();
-  if (!overrides.length) return data.allocationMacro;
-  const latest = overrides.sort((a, b) => b.date.localeCompare(a.date))[0];
-  return data.allocationMacro.map(row => {
-    const current = Number(latest[row.asset.toLowerCase()] ?? row.current);
+  const baseRows = data.allocationMacro.map(row => ({ ...row }));
+  const overrides = loadAllocationOverrides().sort((a, b) => b.date.localeCompare(a.date));
+  if (!overrides.length) return baseRows;
+
+  const latest = overrides[0];
+  const values = {
+    stocks: Number(latest.stocks || 0),
+    commodities: Number(latest.commodities || 0),
+    cash: Number(latest.cash || 0)
+  };
+
+  return baseRows.map(row => {
+    const key = row.asset.toLowerCase();
+    const current = key in values ? values[key] : Number(row.current || 0);
     return {
       ...row,
       current,
@@ -557,50 +574,107 @@ function getCurrentAllocationMacro() {
   });
 }
 
+const _renderDashboard = renderDashboard;
+renderDashboard = function() {
+  const originalHistory = data.portfolioHistory;
+  const originalAlloc = data.allocationMacro;
+  data.portfolioHistory = getMergedPortfolioHistory();
+  data.allocationMacro = getCurrentAllocationMacro();
+  try {
+    _renderDashboard();
+  } finally {
+    data.portfolioHistory = originalHistory;
+    data.allocationMacro = originalAlloc;
+  }
+};
+
+const _renderPortfolio = renderPortfolio;
+renderPortfolio = function() {
+  const originalHistory = data.portfolioHistory;
+  data.portfolioHistory = getMergedPortfolioHistory();
+  try {
+    _renderPortfolio();
+  } finally {
+    data.portfolioHistory = originalHistory;
+  }
+};
+
+const _renderAllocation = renderAllocation;
+renderAllocation = function() {
+  const originalAlloc = data.allocationMacro;
+  data.allocationMacro = getCurrentAllocationMacro();
+  try {
+    _renderAllocation();
+  } finally {
+    data.allocationMacro = originalAlloc;
+  }
+};
+
 function renderUpdates() {
   const portfolioOverrides = loadPortfolioOverrides().sort((a, b) => b.date.localeCompare(a.date));
   const allocationOverrides = loadAllocationOverrides().sort((a, b) => b.date.localeCompare(a.date));
   const latestPortfolio = portfolioOverrides[0];
-  const latestAlloc = allocationOverrides[0];
+  const latestAllocation = allocationOverrides[0];
 
   document.getElementById('updates').innerHTML = `
     <div class="notice">
-      Qui aggiungi i valori mensili direttamente dal sito. I dati del tuo Google Fogli restano visibili, e i nuovi inserimenti si sommano sopra senza cancellare grafici o storico.
+      Questa sezione aggiunge valori mensili sopra i dati storici del file originale, senza cancellare grafici, tabelle o colori del sito.
     </div>
 
     <div class="stack">
       <article class="form-card">
         <h3>Aggiorna Portfolio Engine</h3>
-        <div class="helper">Usa questa sezione per inserire il Net Worth totale e il Cash Flow del mese.</div>
+        <div class="helper">Inserisci il Net Worth totale e il Cash Flow del mese.</div>
         <form id="portfolioUpdateForm" class="form-grid">
-          <input type="month" id="updMonth" required />
-          <input type="number" id="updNetWorth" step="0.01" min="0" placeholder="Net Worth totale (€)" required />
-          <input type="number" id="updCashFlow" step="0.01" placeholder="Cash Flow del mese (€)" required />
+          <label>
+            Mese
+            <input type="month" id="updMonth" required />
+          </label>
+          <label>
+            Net Worth totale (€)
+            <input type="number" id="updNetWorth" step="0.01" min="0" required />
+          </label>
+          <label>
+            Cash Flow del mese (€)
+            <input type="number" id="updCashFlow" step="0.01" required />
+          </label>
           <div></div>
           <div class="full form-actions">
             <button type="submit">Salva aggiornamento portfolio</button>
           </div>
         </form>
-        ${latestPortfolio ? `<p class="success-msg">Ultimo inserimento: ${latestPortfolio.date} — ${euro(latestPortfolio.netWorth)}</p>` : ''}
+        ${latestPortfolio ? `<p class="success-msg">Ultimo portfolio salvato: ${latestPortfolio.date} · ${euro(latestPortfolio.netWorth)}</p>` : ''}
       </article>
 
       <article class="form-card">
         <h3>Aggiorna Asset Allocation</h3>
-        <div class="helper">Inserisci il valore attuale dei macro-asset. Il target resta quello del file originale.</div>
+        <div class="helper">Inserisci i valori attuali di Stocks, Commodities e Cash.</div>
         <form id="allocationUpdateForm" class="form-grid">
-          <input type="month" id="allocMonth" required />
-          <input type="number" id="allocStocks" step="0.01" min="0" placeholder="Stocks (€)" required />
-          <input type="number" id="allocCommodities" step="0.01" min="0" placeholder="Commodities (€)" required />
-          <input type="number" id="allocCash" step="0.01" min="0" placeholder="Cash (€)" required />
+          <label>
+            Mese
+            <input type="month" id="allocMonth" required />
+          </label>
+          <label>
+            Stocks (€)
+            <input type="number" id="allocStocks" step="0.01" min="0" required />
+          </label>
+          <label>
+            Commodities (€)
+            <input type="number" id="allocCommodities" step="0.01" min="0" required />
+          </label>
+          <label>
+            Cash (€)
+            <input type="number" id="allocCash" step="0.01" min="0" required />
+          </label>
           <div class="full form-actions">
             <button type="submit">Salva allocation</button>
           </div>
         </form>
-        ${latestAlloc ? `<p class="success-msg">Ultima allocation: ${latestAlloc.date} — Stocks ${euro(latestAlloc.stocks)}, Commodities ${euro(latestAlloc.commodities)}, Cash ${euro(latestAlloc.cash)}</p>` : ''}
+        ${latestAllocation ? `<p class="success-msg">Ultima allocation salvata: ${latestAllocation.date}</p>` : ''}
       </article>
 
       <article class="panel">
-        <h3>Storico aggiornamenti Portfolio</h3>
+        <h3>Storico aggiornamenti portfolio</h3>
         <div class="history-list">
           ${portfolioOverrides.length ? portfolioOverrides.map(item => `
             <div class="history-item">
@@ -608,16 +682,14 @@ function renderUpdates() {
                 <strong>${item.date}</strong>
                 <div class="small">Net Worth: ${euro(item.netWorth)} · Cash Flow: ${euro(item.cashFlow)}</div>
               </div>
-              <div>
-                <button class="secondary" data-delete-portfolio="${item.date}">Elimina</button>
-              </div>
+              <button class="secondary" data-delete-portfolio="${item.date}">Elimina</button>
             </div>
-          `).join('') : '<div class="small">Nessun aggiornamento portfolio inserito dal sito.</div>'}
+          `).join('') : '<div class="small">Nessun aggiornamento inserito dal sito.</div>'}
         </div>
       </article>
 
       <article class="panel">
-        <h3>Storico aggiornamenti Allocation</h3>
+        <h3>Storico aggiornamenti allocation</h3>
         <div class="history-list">
           ${allocationOverrides.length ? allocationOverrides.map(item => `
             <div class="history-item">
@@ -625,9 +697,7 @@ function renderUpdates() {
                 <strong>${item.date}</strong>
                 <div class="small">Stocks: ${euro(item.stocks)} · Commodities: ${euro(item.commodities)} · Cash: ${euro(item.cash)}</div>
               </div>
-              <div>
-                <button class="secondary" data-delete-allocation="${item.date}">Elimina</button>
-              </div>
+              <button class="secondary" data-delete-allocation="${item.date}">Elimina</button>
             </div>
           `).join('') : '<div class="small">Nessun aggiornamento allocation inserito dal sito.</div>'}
         </div>
@@ -635,31 +705,34 @@ function renderUpdates() {
     </div>
   `;
 
-  document.getElementById('portfolioUpdateForm').addEventListener('submit', (e) => {
+  const portfolioForm = document.getElementById('portfolioUpdateForm');
+  const allocationForm = document.getElementById('allocationUpdateForm');
+
+  portfolioForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const month = document.getElementById('updMonth').value;
+    const date = safeMonthToDate(document.getElementById('updMonth').value);
     const item = {
-      date: `${month}-01`,
+      date,
       netWorth: Number(document.getElementById('updNetWorth').value),
       cashFlow: Number(document.getElementById('updCashFlow').value)
     };
-    const items = loadPortfolioOverrides().filter(x => x.date !== item.date);
+    const items = loadPortfolioOverrides().filter(x => x.date !== date);
     items.push(item);
     savePortfolioOverrides(items);
     rerenderAll();
     setView('updates');
   });
 
-  document.getElementById('allocationUpdateForm').addEventListener('submit', (e) => {
+  allocationForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const month = document.getElementById('allocMonth').value;
+    const date = safeMonthToDate(document.getElementById('allocMonth').value);
     const item = {
-      date: `${month}-01`,
+      date,
       stocks: Number(document.getElementById('allocStocks').value),
       commodities: Number(document.getElementById('allocCommodities').value),
       cash: Number(document.getElementById('allocCash').value)
     };
-    const items = loadAllocationOverrides().filter(x => x.date !== item.date);
+    const items = loadAllocationOverrides().filter(x => x.date !== date);
     items.push(item);
     saveAllocationOverrides(items);
     rerenderAll();
@@ -694,42 +767,5 @@ function rerenderAll() {
   renderFinance();
   renderUpdates();
 }
-
-// Patch existing renderers to use merged data and latest allocation
-const _renderDashboard = renderDashboard;
-renderDashboard = function() {
-  const originalHistory = data.portfolioHistory;
-  const originalAlloc = data.allocationMacro;
-  data.portfolioHistory = getMergedPortfolioHistory();
-  data.allocationMacro = getCurrentAllocationMacro();
-  _renderDashboard();
-  data.portfolioHistory = originalHistory;
-  data.allocationMacro = originalAlloc;
-};
-
-const _renderPortfolio = renderPortfolio;
-renderPortfolio = function() {
-  const originalHistory = data.portfolioHistory;
-  data.portfolioHistory = getMergedPortfolioHistory();
-  _renderPortfolio();
-  data.portfolioHistory = originalHistory;
-};
-
-const _renderAllocation = renderAllocation;
-renderAllocation = function() {
-  const originalAlloc = data.allocationMacro;
-  data.allocationMacro = getCurrentAllocationMacro();
-  _renderAllocation();
-  data.allocationMacro = originalAlloc;
-};
-
-// initial rerender replacing the old direct calls
-document.getElementById('dashboard').innerHTML = '';
-document.getElementById('portfolio').innerHTML = '';
-document.getElementById('allocation').innerHTML = '';
-document.getElementById('annual').innerHTML = '';
-document.getElementById('sterline').innerHTML = '';
-document.getElementById('finance').innerHTML = '';
-document.getElementById('updates').innerHTML = '';
 
 rerenderAll();
