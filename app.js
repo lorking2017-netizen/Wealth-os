@@ -17,6 +17,12 @@ function euro(v) {
 function pct(v) {
   return `${(Number(v || 0) * 100).toFixed(2)}%`;
 }
+function allocationGapLabel(delta) {
+  const value = euro(Math.abs(Number(delta || 0)));
+  if (Number(delta || 0) > 0) return `Sopra target di ${value}`;
+  if (Number(delta || 0) < 0) return `Sotto target di ${value}`;
+  return 'In linea col target';
+}
 function num(v) {
   if (v === null || v === undefined || v === '') return '-';
   return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(Number(v));
@@ -126,14 +132,14 @@ function renderDashboard() {
       <article class="panel">
         <h3>Asset Allocation attuale</h3>
         <table>
-          <thead><tr><th>Asset</th><th>Current</th><th>Target</th><th>Gap vs target</th></tr></thead>
+          <thead><tr><th>Asset</th><th>Current</th><th>Target</th><th>Delta</th></tr></thead>
           <tbody>
             ${data.allocationMacro.map(row => `
               <tr>
                 <td>${row.asset}</td>
                 <td>${euro(row.current)}</td>
                 <td>${pct(row.targetPct)}</td>
-                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
+                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${allocationGapLabel(row.delta)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -188,7 +194,7 @@ function renderAllocation() {
         <h3>Macro Allocation</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Asset</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Gap vs target</th></tr></thead>
+            <thead><tr><th>Asset</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
             <tbody>
               ${data.allocationMacro.map(row => `
                 <tr>
@@ -196,7 +202,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${euro(row.targetEur)}</td>
-                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
+                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${allocationGapLabel(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -207,7 +213,7 @@ function renderAllocation() {
         <h3>Dettaglio Allocation</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Gruppo</th><th>Asset</th><th>Ticker</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Gap vs target</th></tr></thead>
+            <thead><tr><th>Gruppo</th><th>Asset</th><th>Ticker</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
             <tbody>
               ${data.allocationDetail.map(row => `
                 <tr>
@@ -217,7 +223,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${row.targetEur === null ? '-' : euro(row.targetEur)}</td>
-                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : euro(row.delta)}</td>
+                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : allocationGapLabel(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -506,9 +512,9 @@ renderFinance();
 
 const PORTFOLIO_OVERRIDES_KEY = 'wealth-os-portfolio-overrides';
 const ALLOCATION_OVERRIDES_KEY = 'wealth-os-allocation-overrides';
+const ALLOCATION_TARGETS_KEY = 'wealth-os-allocation-targets';
 const POSITION_HISTORY_KEY = 'wealth-os-position-history';
 const WATCHLIST_KEY = 'wealth-os-watchlist';
-const ALLOCATION_TARGETS_KEY = 'wealth-os-allocation-targets';
 
 viewMeta.positions = ['Posizioni', 'Quote, prezzo, valore e peso delle posizioni correnti.'];
 viewMeta.watchlist = ['Watchlist', 'Tracking manuale dei tuoi strumenti preferiti.'];
@@ -1949,26 +1955,20 @@ function saveJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-function loadAllocationTargets() {
-  const defaults = {
-    stocks: Number(data.allocationMacro.find(x => x.asset === 'Stocks')?.targetPct || 0),
-    commodities: Number(data.allocationMacro.find(x => x.asset === 'Commodities')?.targetPct || 0),
-    cash: Number(data.allocationMacro.find(x => x.asset === 'Cash')?.targetPct || 0)
-  };
-  const existing = loadJson(ALLOCATION_TARGETS_KEY, null);
-  if (existing === null) {
-    saveJson(ALLOCATION_TARGETS_KEY, defaults);
-    return defaults;
-  }
-  return { ...defaults, ...existing };
-}
-function saveAllocationTargets(value) { saveJson(ALLOCATION_TARGETS_KEY, value); }
-
 function loadPortfolioOverrides() { return loadJson(PORTFOLIO_OVERRIDES_KEY, []); }
 function savePortfolioOverrides(items) { saveJson(PORTFOLIO_OVERRIDES_KEY, items); }
 
 function loadAllocationOverrides() { return loadJson(ALLOCATION_OVERRIDES_KEY, []); }
 function saveAllocationOverrides(items) { saveJson(ALLOCATION_OVERRIDES_KEY, items); }
+
+function loadAllocationTargets() {
+  const fallback = {};
+  data.allocationMacro.forEach(row => {
+    fallback[row.asset.toLowerCase()] = Number(row.targetPct || 0);
+  });
+  return loadJson(ALLOCATION_TARGETS_KEY, fallback);
+}
+function saveAllocationTargets(items) { saveJson(ALLOCATION_TARGETS_KEY, items); }
 
 function loadPositionHistory() {
   const existing = loadJson(POSITION_HISTORY_KEY, null);
@@ -2068,11 +2068,9 @@ function getCurrentAllocationMacro() {
   const positionRows = getLatestPositionRows();
   const stockTotal = positionRows
     .filter(x => (x.category || '').toLowerCase() === 'stocks')
-    .reduce((sum, x) => sum + Number(x.value || 0), 0);
+    .reduce((sum, x) => sum + x.value, 0);
 
   const overrides = loadAllocationOverrides().sort((a, b) => b.date.localeCompare(a.date));
-  const targets = loadAllocationTargets();
-
   let values = {
     stocks: stockTotal || Number(baseRows.find(x => x.asset === 'Stocks')?.current || 0),
     commodities: Number(baseRows.find(x => x.asset === 'Commodities')?.current || 0),
@@ -2088,11 +2086,12 @@ function getCurrentAllocationMacro() {
     };
   }
 
+  const targets = loadAllocationTargets();
   const totalCurrent = Number(values.stocks || 0) + Number(values.commodities || 0) + Number(values.cash || 0);
 
   return baseRows.map(row => {
     const key = row.asset.toLowerCase();
-    const current = key in values ? Number(values[key] || 0) : Number(row.current || 0);
+    const current = key in values ? values[key] : Number(row.current || 0);
     const targetPct = key in targets ? Number(targets[key] || 0) : Number(row.targetPct || 0);
     const targetEur = totalCurrent * targetPct;
 
@@ -2101,7 +2100,7 @@ function getCurrentAllocationMacro() {
       current,
       targetPct,
       targetEur,
-      delta: targetEur - current
+      delta: current - targetEur
     };
   });
 }
@@ -2335,29 +2334,27 @@ function renderUpdates() {
         ${latestAllocation ? `<p class="success-msg">Ultimo cash/commodities: ${latestAllocation.date}</p>` : ''}
       </article>
 
-
       <article class="form-card">
         <h3>Target Asset Allocation</h3>
-        <div class="helper">Modifica direttamente dal sito i target percentuali di Stocks, Commodities e Cash. Usa valori decimali: 0.60 = 60%.</div>
-        <form id="allocationTargetsForm" class="form-grid">
+        <div class="helper">Modifica direttamente dal sito i target percentuali di Stocks, Commodities e Cash. Devono sommare a 1.00.</div>
+        <form id="targetAllocationForm" class="form-grid">
           <label>
             Target Stocks
-            <input type="number" id="targetStocks" step="0.0001" min="0" max="1" required />
+            <input type="number" id="targetStocks" step="0.0001" min="0" max="1" value="${(loadAllocationTargets().stocks ?? 0).toFixed(4)}" required />
           </label>
           <label>
             Target Commodities
-            <input type="number" id="targetCommodities" step="0.0001" min="0" max="1" required />
+            <input type="number" id="targetCommodities" step="0.0001" min="0" max="1" value="${(loadAllocationTargets().commodities ?? 0).toFixed(4)}" required />
           </label>
           <label>
             Target Cash
-            <input type="number" id="targetCash" step="0.0001" min="0" max="1" required />
+            <input type="number" id="targetCash" step="0.0001" min="0" max="1" value="${(loadAllocationTargets().cash ?? 0).toFixed(4)}" required />
           </label>
           <div></div>
           <div class="full form-actions">
             <button type="submit">Salva target allocation</button>
           </div>
         </form>
-        <p class="success-msg">Target correnti: Stocks <span id="targetStocksLabel"></span> · Commodities <span id="targetCommoditiesLabel"></span> · Cash <span id="targetCashLabel"></span></p>
       </article>
 
       <article class="form-card">
@@ -2476,16 +2473,7 @@ function renderUpdates() {
     setView('updates');
   });
 
-
-  const currentTargets = loadAllocationTargets();
-  document.getElementById('targetStocks').value = currentTargets.stocks;
-  document.getElementById('targetCommodities').value = currentTargets.commodities;
-  document.getElementById('targetCash').value = currentTargets.cash;
-  document.getElementById('targetStocksLabel').textContent = pct(currentTargets.stocks);
-  document.getElementById('targetCommoditiesLabel').textContent = pct(currentTargets.commodities);
-  document.getElementById('targetCashLabel').textContent = pct(currentTargets.cash);
-
-  document.getElementById('allocationTargetsForm').addEventListener('submit', (e) => {
+  document.getElementById('targetAllocationForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const stocks = Number(document.getElementById('targetStocks').value);
     const commodities = Number(document.getElementById('targetCommodities').value);
@@ -2493,7 +2481,7 @@ function renderUpdates() {
     const total = stocks + commodities + cash;
 
     if (Math.abs(total - 1) > 0.0001) {
-      alert('La somma dei target deve essere 1.00, cioè 100%.');
+      alert('I target devono sommare a 1.00');
       return;
     }
 
