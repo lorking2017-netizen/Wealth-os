@@ -486,28 +486,76 @@ renderSterline();
 renderFinance();
 
 
+
 const PORTFOLIO_OVERRIDES_KEY = 'wealth-os-portfolio-overrides';
 const ALLOCATION_OVERRIDES_KEY = 'wealth-os-allocation-overrides';
+const POSITION_HISTORY_KEY = 'wealth-os-position-history';
+const WATCHLIST_KEY = 'wealth-os-watchlist';
 
-viewMeta.updates = ['Aggiornamenti', 'Inserisci l’aggiornamento mensile senza perdere grafici e dati storici.'];
+viewMeta.positions = ['Posizioni', 'Quote, prezzo, valore e peso delle posizioni correnti.'];
+viewMeta.watchlist = ['Watchlist', 'Tracking manuale dei tuoi strumenti preferiti.'];
+viewMeta.updates = ['Aggiornamenti', 'Aggiorna Net Worth, ETF, cash, commodities e watchlist mese per mese.'];
 
-function loadPortfolioOverrides() {
-  try { return JSON.parse(localStorage.getItem(PORTFOLIO_OVERRIDES_KEY) || '[]'); }
-  catch { return []; }
+const DEFAULT_WATCHLIST = [
+  { name: 'SWDA', ticker: 'SWDA SW', price: 113.35, ytd: 0.0056, lastMonth: 0.0123, note: 'ETF World' },
+  { name: 'EIMI', ticker: 'EIMI SW', price: 43.51, ytd: 0.0982, lastMonth: 0.0680, note: 'Emerging Markets' },
+  { name: 'Gold', ticker: 'Gold (ounce)', price: 4470.50, ytd: 0.1776, lastMonth: 0.0406, note: 'Monitoraggio oro' },
+  { name: 'Bitcoin', ticker: 'BTC', price: 56850.21, ytd: -0.2800, lastMonth: -0.2329, note: 'Crypto' },
+  { name: 'EURCHF', ticker: 'EURCHF', price: 0.908, ytd: null, lastMonth: null, note: 'FX' },
+  { name: 'EURUSD', ticker: 'EURUSD', price: 1.181, ytd: null, lastMonth: null, note: 'FX' },
+  { name: 'USDCHF', ticker: 'USDCHF', price: 0.769, ytd: null, lastMonth: null, note: 'FX' }
+];
+
+const DEFAULT_POSITION_HISTORY = [
+  { date: '2026-02-01', name: 'SWDA', ticker: 'SWDA SW', category: 'Stocks', quotes: 33.22, price: 113.35, currency: 'EUR' },
+  { date: '2026-02-01', name: 'EIMI', ticker: 'EIMI SW', category: 'Stocks', quotes: 22.25, price: 43.51, currency: 'EUR' }
+];
+
+function loadJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
 }
-function savePortfolioOverrides(items) {
-  localStorage.setItem(PORTFOLIO_OVERRIDES_KEY, JSON.stringify(items));
+function saveJson(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
 }
-function loadAllocationOverrides() {
-  try { return JSON.parse(localStorage.getItem(ALLOCATION_OVERRIDES_KEY) || '[]'); }
-  catch { return []; }
+
+function loadPortfolioOverrides() { return loadJson(PORTFOLIO_OVERRIDES_KEY, []); }
+function savePortfolioOverrides(items) { saveJson(PORTFOLIO_OVERRIDES_KEY, items); }
+
+function loadAllocationOverrides() { return loadJson(ALLOCATION_OVERRIDES_KEY, []); }
+function saveAllocationOverrides(items) { saveJson(ALLOCATION_OVERRIDES_KEY, items); }
+
+function loadPositionHistory() {
+  const existing = loadJson(POSITION_HISTORY_KEY, null);
+  if (existing === null) {
+    saveJson(POSITION_HISTORY_KEY, DEFAULT_POSITION_HISTORY);
+    return [...DEFAULT_POSITION_HISTORY];
+  }
+  return existing;
 }
-function saveAllocationOverrides(items) {
-  localStorage.setItem(ALLOCATION_OVERRIDES_KEY, JSON.stringify(items));
+function savePositionHistory(items) { saveJson(POSITION_HISTORY_KEY, items); }
+
+function loadWatchlist() {
+  const existing = loadJson(WATCHLIST_KEY, null);
+  if (existing === null) {
+    saveJson(WATCHLIST_KEY, DEFAULT_WATCHLIST);
+    return [...DEFAULT_WATCHLIST];
+  }
+  return existing;
 }
+function saveWatchlist(items) { saveJson(WATCHLIST_KEY, items); }
 
 function safeMonthToDate(monthValue) {
   return monthValue ? `${monthValue}-01` : '';
+}
+
+function monthInputFromDate(dateStr) {
+  return dateStr ? dateStr.slice(0, 7) : '';
 }
 
 function getMergedPortfolioHistory() {
@@ -551,17 +599,45 @@ function getMergedPortfolioHistory() {
   return merged;
 }
 
+function getLatestPositionRows() {
+  const items = loadPositionHistory();
+  if (!items.length) return [];
+  const latestDate = items.map(x => x.date).sort().slice(-1)[0];
+  const latest = items.filter(x => x.date === latestDate).map(x => ({
+    ...x,
+    quotes: Number(x.quotes || 0),
+    price: Number(x.price || 0),
+    value: Number(x.quotes || 0) * Number(x.price || 0)
+  }));
+  const total = latest.reduce((sum, row) => sum + row.value, 0);
+  return latest.map(row => ({
+    ...row,
+    weight: total ? row.value / total : 0
+  }));
+}
+
 function getCurrentAllocationMacro() {
   const baseRows = data.allocationMacro.map(row => ({ ...row }));
-  const overrides = loadAllocationOverrides().sort((a, b) => b.date.localeCompare(a.date));
-  if (!overrides.length) return baseRows;
+  const positionRows = getLatestPositionRows();
+  const stockTotal = positionRows
+    .filter(x => (x.category || '').toLowerCase() === 'stocks')
+    .reduce((sum, x) => sum + x.value, 0);
 
-  const latest = overrides[0];
-  const values = {
-    stocks: Number(latest.stocks || 0),
-    commodities: Number(latest.commodities || 0),
-    cash: Number(latest.cash || 0)
+  const overrides = loadAllocationOverrides().sort((a, b) => b.date.localeCompare(a.date));
+  let values = {
+    stocks: stockTotal || Number(baseRows.find(x => x.asset === 'Stocks')?.current || 0),
+    commodities: Number(baseRows.find(x => x.asset === 'Commodities')?.current || 0),
+    cash: Number(baseRows.find(x => x.asset === 'Cash')?.current || 0)
   };
+
+  if (overrides.length) {
+    const latest = overrides[0];
+    values = {
+      stocks: stockTotal || Number(latest.stocks || 0),
+      commodities: Number(latest.commodities || 0),
+      cash: Number(latest.cash || 0)
+    };
+  }
 
   return baseRows.map(row => {
     const key = row.asset.toLowerCase();
@@ -580,9 +656,7 @@ renderDashboard = function() {
   const originalAlloc = data.allocationMacro;
   data.portfolioHistory = getMergedPortfolioHistory();
   data.allocationMacro = getCurrentAllocationMacro();
-  try {
-    _renderDashboard();
-  } finally {
+  try { _renderDashboard(); } finally {
     data.portfolioHistory = originalHistory;
     data.allocationMacro = originalAlloc;
   }
@@ -592,9 +666,7 @@ const _renderPortfolio = renderPortfolio;
 renderPortfolio = function() {
   const originalHistory = data.portfolioHistory;
   data.portfolioHistory = getMergedPortfolioHistory();
-  try {
-    _renderPortfolio();
-  } finally {
+  try { _renderPortfolio(); } finally {
     data.portfolioHistory = originalHistory;
   }
 };
@@ -603,27 +675,115 @@ const _renderAllocation = renderAllocation;
 renderAllocation = function() {
   const originalAlloc = data.allocationMacro;
   data.allocationMacro = getCurrentAllocationMacro();
-  try {
-    _renderAllocation();
-  } finally {
+  try { _renderAllocation(); } finally {
     data.allocationMacro = originalAlloc;
   }
 };
 
+function renderPositions() {
+  const rows = getLatestPositionRows();
+  const totalValue = rows.reduce((sum, row) => sum + row.value, 0);
+  const totalQuotes = rows.reduce((sum, row) => sum + row.quotes, 0);
+  const stockTotal = rows.filter(x => x.category === 'Stocks').reduce((sum, row) => sum + row.value, 0);
+  const latestDate = rows[0]?.date || '-';
+
+  document.getElementById('positions').innerHTML = `
+    <div class="cards">
+      <article class="card"><h3>Ultimo mese posizioni</h3><p class="metric">${latestDate}</p></article>
+      <article class="card"><h3>Valore totale posizioni</h3><p class="metric">${euro(totalValue)}</p></article>
+      <article class="card"><h3>Quote totali</h3><p class="metric">${num(totalQuotes)}</p></article>
+      <article class="card"><h3>Totale Stocks</h3><p class="metric">${euro(stockTotal)}</p></article>
+    </div>
+    <article class="panel">
+      <h3>Posizioni correnti</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Strumento</th><th>Ticker</th><th>Categoria</th><th>Quote</th><th>Prezzo</th><th>Valore</th><th>Peso %</th><th>Valuta</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.length ? rows.map(row => `
+              <tr>
+                <td>${row.name}</td>
+                <td>${row.ticker || '-'}</td>
+                <td>${row.category || '-'}</td>
+                <td>${num(row.quotes)}</td>
+                <td>${euro(row.price)}</td>
+                <td>${euro(row.value)}</td>
+                <td>${pct(row.weight)}</td>
+                <td>${row.currency || 'EUR'}</td>
+              </tr>
+            `).join('') : '<tr><td colspan="8" class="empty-state">Nessuna posizione ancora inserita.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  `;
+}
+
+function renderWatchlist() {
+  const items = loadWatchlist();
+  document.getElementById('watchlist').innerHTML = `
+    <article class="panel">
+      <h3>Strumenti preferiti</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th><th>Ticker</th><th>Prezzo</th><th>YTD</th><th>Last M</th><th>Note</th><th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.length ? items.map((item, idx) => `
+              <tr>
+                <td>${item.name}</td>
+                <td>${item.ticker || '-'}</td>
+                <td>${num(item.price)}</td>
+                <td class="${Number(item.ytd || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${item.ytd === null || item.ytd === '' ? '-' : pct(item.ytd)}</td>
+                <td class="${Number(item.lastMonth || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${item.lastMonth === null || item.lastMonth === '' ? '-' : pct(item.lastMonth)}</td>
+                <td>${item.note || '-'}</td>
+                <td><button class="secondary" data-delete-watch="${idx}">Elimina</button></td>
+              </tr>
+            `).join('') : '<tr><td colspan="7" class="empty-state">Nessuno strumento in watchlist.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  `;
+
+  document.querySelectorAll('[data-delete-watch]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const items = loadWatchlist();
+      items.splice(Number(btn.dataset.deleteWatch), 1);
+      saveWatchlist(items);
+      rerenderAll();
+      setView('watchlist');
+    });
+  });
+}
+
 function renderUpdates() {
   const portfolioOverrides = loadPortfolioOverrides().sort((a, b) => b.date.localeCompare(a.date));
   const allocationOverrides = loadAllocationOverrides().sort((a, b) => b.date.localeCompare(a.date));
+  const positionHistory = loadPositionHistory().sort((a, b) => b.date.localeCompare(a.date));
+  const watchlist = loadWatchlist();
+
   const latestPortfolio = portfolioOverrides[0];
   const latestAllocation = allocationOverrides[0];
+  const latestPositionDate = positionHistory[0]?.date || '';
+  const latestMonthPositions = latestPositionDate ? positionHistory.filter(x => x.date === latestPositionDate) : [];
+  const totalLatestPositions = latestMonthPositions.reduce((sum, x) => sum + Number(x.quotes || 0) * Number(x.price || 0), 0);
 
   document.getElementById('updates').innerHTML = `
     <div class="notice">
-      Questa sezione aggiunge valori mensili sopra i dati storici del file originale, senza cancellare grafici, tabelle o colori del sito.
+      Aggiorna qui il mese corrente. Le posizioni ETF determinano automaticamente il totale Stocks nella Asset Allocation.
     </div>
 
     <div class="stack">
       <article class="form-card">
-        <h3>Aggiorna Portfolio Engine</h3>
+        <h3>Portfolio Engine</h3>
         <div class="helper">Inserisci il Net Worth totale e il Cash Flow del mese.</div>
         <form id="portfolioUpdateForm" class="form-grid">
           <label>
@@ -640,23 +800,64 @@ function renderUpdates() {
           </label>
           <div></div>
           <div class="full form-actions">
-            <button type="submit">Salva aggiornamento portfolio</button>
+            <button type="submit">Salva portfolio</button>
           </div>
         </form>
-        ${latestPortfolio ? `<p class="success-msg">Ultimo portfolio salvato: ${latestPortfolio.date} · ${euro(latestPortfolio.netWorth)}</p>` : ''}
+        ${latestPortfolio ? `<p class="success-msg">Ultimo portfolio: ${latestPortfolio.date} · ${euro(latestPortfolio.netWorth)}</p>` : ''}
       </article>
 
       <article class="form-card">
-        <h3>Aggiorna Asset Allocation</h3>
-        <div class="helper">Inserisci i valori attuali di Stocks, Commodities e Cash.</div>
+        <h3>Posizioni ETF / Azioni</h3>
+        <div class="helper">Inserisci quote e prezzo. Il sito calcola valore e totale Stocks.</div>
+        <form id="positionUpdateForm" class="form-grid">
+          <label>
+            Mese
+            <input type="month" id="posMonth" required value="${monthInputFromDate(latestPositionDate)}" />
+          </label>
+          <label>
+            Strumento
+            <input type="text" id="posName" placeholder="Es. SWDA" required />
+          </label>
+          <label>
+            Ticker
+            <input type="text" id="posTicker" placeholder="Es. SWDA SW" />
+          </label>
+          <label>
+            Categoria
+            <select id="posCategory">
+              <option value="Stocks">Stocks</option>
+              <option value="Commodities">Commodities</option>
+              <option value="Cash">Cash</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label>
+            Quote
+            <input type="number" id="posQuotes" step="0.0001" min="0" required />
+          </label>
+          <label>
+            Prezzo (€)
+            <input type="number" id="posPrice" step="0.0001" min="0" required />
+          </label>
+          <label>
+            Valuta
+            <input type="text" id="posCurrency" value="EUR" />
+          </label>
+          <div></div>
+          <div class="full form-actions">
+            <button type="submit">Salva posizione</button>
+          </div>
+        </form>
+        <p class="success-msg">Ultimo mese posizioni: ${latestPositionDate || '-'} · Totale ${euro(totalLatestPositions)}</p>
+      </article>
+
+      <article class="form-card">
+        <h3>Cash e Commodities</h3>
+        <div class="helper">Inserisci cash e commodities del mese. Stocks viene preso automaticamente dalle posizioni.</div>
         <form id="allocationUpdateForm" class="form-grid">
           <label>
             Mese
             <input type="month" id="allocMonth" required />
-          </label>
-          <label>
-            Stocks (€)
-            <input type="number" id="allocStocks" step="0.01" min="0" required />
           </label>
           <label>
             Commodities (€)
@@ -666,49 +867,77 @@ function renderUpdates() {
             Cash (€)
             <input type="number" id="allocCash" step="0.01" min="0" required />
           </label>
+          <div></div>
           <div class="full form-actions">
-            <button type="submit">Salva allocation</button>
+            <button type="submit">Salva cash/commodities</button>
           </div>
         </form>
-        ${latestAllocation ? `<p class="success-msg">Ultima allocation salvata: ${latestAllocation.date}</p>` : ''}
+        ${latestAllocation ? `<p class="success-msg">Ultimo cash/commodities: ${latestAllocation.date}</p>` : ''}
+      </article>
+
+      <article class="form-card">
+        <h3>Watchlist / Strumenti preferiti</h3>
+        <div class="helper">Aggiungi o aggiorna manualmente i tuoi strumenti monitorati.</div>
+        <form id="watchlistForm" class="form-grid">
+          <label>
+            Nome
+            <input type="text" id="watchName" placeholder="Es. Gold" required />
+          </label>
+          <label>
+            Ticker
+            <input type="text" id="watchTicker" placeholder="Es. Gold (ounce)" />
+          </label>
+          <label>
+            Prezzo
+            <input type="number" id="watchPrice" step="0.0001" min="0" required />
+          </label>
+          <label>
+            YTD %
+            <input type="number" id="watchYtd" step="0.0001" placeholder="0.1776 = 17.76%" />
+          </label>
+          <label>
+            Last Month %
+            <input type="number" id="watchLastMonth" step="0.0001" placeholder="0.0406 = 4.06%" />
+          </label>
+          <label class="full">
+            Note
+            <input type="text" id="watchNote" placeholder="Nota facoltativa" />
+          </label>
+          <div class="full form-actions">
+            <button type="submit">Salva strumento watchlist</button>
+          </div>
+        </form>
+        <p class="success-msg">Strumenti in watchlist: ${watchlist.length}</p>
       </article>
 
       <article class="panel">
-        <h3>Storico aggiornamenti portfolio</h3>
-        <div class="history-list">
-          ${portfolioOverrides.length ? portfolioOverrides.map(item => `
-            <div class="history-item">
-              <div>
-                <strong>${item.date}</strong>
-                <div class="small">Net Worth: ${euro(item.netWorth)} · Cash Flow: ${euro(item.cashFlow)}</div>
-              </div>
-              <button class="secondary" data-delete-portfolio="${item.date}">Elimina</button>
-            </div>
-          `).join('') : '<div class="small">Nessun aggiornamento inserito dal sito.</div>'}
-        </div>
-      </article>
-
-      <article class="panel">
-        <h3>Storico aggiornamenti allocation</h3>
-        <div class="history-list">
-          ${allocationOverrides.length ? allocationOverrides.map(item => `
-            <div class="history-item">
-              <div>
-                <strong>${item.date}</strong>
-                <div class="small">Stocks: ${euro(item.stocks)} · Commodities: ${euro(item.commodities)} · Cash: ${euro(item.cash)}</div>
-              </div>
-              <button class="secondary" data-delete-allocation="${item.date}">Elimina</button>
-            </div>
-          `).join('') : '<div class="small">Nessun aggiornamento allocation inserito dal sito.</div>'}
+        <h3>Posizioni dell’ultimo mese</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Data</th><th>Strumento</th><th>Ticker</th><th>Categoria</th><th>Quote</th><th>Prezzo</th><th>Valore</th><th>Azioni</th></tr>
+            </thead>
+            <tbody>
+              ${latestMonthPositions.length ? latestMonthPositions.map((item, idx) => `
+                <tr>
+                  <td>${item.date}</td>
+                  <td>${item.name}</td>
+                  <td>${item.ticker || '-'}</td>
+                  <td>${item.category || '-'}</td>
+                  <td>${num(item.quotes)}</td>
+                  <td>${euro(item.price)}</td>
+                  <td>${euro(Number(item.quotes || 0) * Number(item.price || 0))}</td>
+                  <td><button class="secondary" data-delete-position="${item.date}__${item.name}__${idx}">Elimina</button></td>
+                </tr>
+              `).join('') : '<tr><td colspan="8" class="empty-state">Nessuna posizione nell’ultimo mese.</td></tr>'}
+            </tbody>
+          </table>
         </div>
       </article>
     </div>
   `;
 
-  const portfolioForm = document.getElementById('portfolioUpdateForm');
-  const allocationForm = document.getElementById('allocationUpdateForm');
-
-  portfolioForm.addEventListener('submit', (e) => {
+  document.getElementById('portfolioUpdateForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const date = safeMonthToDate(document.getElementById('updMonth').value);
     const item = {
@@ -723,12 +952,35 @@ function renderUpdates() {
     setView('updates');
   });
 
-  allocationForm.addEventListener('submit', (e) => {
+  document.getElementById('positionUpdateForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const date = safeMonthToDate(document.getElementById('allocMonth').value);
+    const date = safeMonthToDate(document.getElementById('posMonth').value);
     const item = {
       date,
-      stocks: Number(document.getElementById('allocStocks').value),
+      name: document.getElementById('posName').value.trim(),
+      ticker: document.getElementById('posTicker').value.trim(),
+      category: document.getElementById('posCategory').value,
+      quotes: Number(document.getElementById('posQuotes').value),
+      price: Number(document.getElementById('posPrice').value),
+      currency: document.getElementById('posCurrency').value.trim() || 'EUR'
+    };
+    const items = loadPositionHistory().filter(x => !(x.date === item.date && x.name.toLowerCase() === item.name.toLowerCase()));
+    items.push(item);
+    savePositionHistory(items);
+    rerenderAll();
+    setView('updates');
+  });
+
+  document.getElementById('allocationUpdateForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const date = safeMonthToDate(document.getElementById('allocMonth').value);
+    const latestStocks = getLatestPositionRows()
+      .filter(x => x.category === 'Stocks')
+      .reduce((sum, x) => sum + x.value, 0);
+
+    const item = {
+      date,
+      stocks: latestStocks,
       commodities: Number(document.getElementById('allocCommodities').value),
       cash: Number(document.getElementById('allocCash').value)
     };
@@ -739,19 +991,28 @@ function renderUpdates() {
     setView('updates');
   });
 
-  document.querySelectorAll('[data-delete-portfolio]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const items = loadPortfolioOverrides().filter(x => x.date !== btn.dataset.deletePortfolio);
-      savePortfolioOverrides(items);
-      rerenderAll();
-      setView('updates');
-    });
+  document.getElementById('watchlistForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const item = {
+      name: document.getElementById('watchName').value.trim(),
+      ticker: document.getElementById('watchTicker').value.trim(),
+      price: Number(document.getElementById('watchPrice').value),
+      ytd: document.getElementById('watchYtd').value === '' ? null : Number(document.getElementById('watchYtd').value),
+      lastMonth: document.getElementById('watchLastMonth').value === '' ? null : Number(document.getElementById('watchLastMonth').value),
+      note: document.getElementById('watchNote').value.trim()
+    };
+    const items = loadWatchlist().filter(x => x.name.toLowerCase() !== item.name.toLowerCase());
+    items.push(item);
+    saveWatchlist(items);
+    rerenderAll();
+    setView('updates');
   });
 
-  document.querySelectorAll('[data-delete-allocation]').forEach(btn => {
+  document.querySelectorAll('[data-delete-position]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const items = loadAllocationOverrides().filter(x => x.date !== btn.dataset.deleteAllocation);
-      saveAllocationOverrides(items);
+      const [date, name] = btn.dataset.deletePosition.split('__');
+      const items = loadPositionHistory().filter(x => !(x.date === date && x.name === name));
+      savePositionHistory(items);
       rerenderAll();
       setView('updates');
     });
@@ -763,9 +1024,12 @@ function rerenderAll() {
   renderPortfolio();
   renderAllocation();
   renderAnnual();
+  renderPositions();
+  renderWatchlist();
   renderSterline();
   renderFinance();
   renderUpdates();
 }
 
+// rerender with enhanced views
 rerenderAll();
