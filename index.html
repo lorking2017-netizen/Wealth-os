@@ -1,56 +1,49 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wealth OS v2</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wealth OS</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="layout">
-<aside class="sidebar">
-<h2>Wealth OS</h2>
-<button onclick="show('dashboard')">Dashboard</button>
-<button onclick="show('updates')">Aggiornamenti</button>
-<button onclick="show('finance')">Entrate/Uscite</button>
-</aside>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Wealth OS</h1>
+        <p>Portfolio, patrimonio e cash flow personale</p>
+      </div>
 
-<main>
-<section id="dashboard">
-<h2>Dashboard</h2>
-<p>Net Worth: <span id="nw">0</span> €</p>
-</section>
+      <nav class="nav">
+        <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+        <button class="nav-btn" data-view="portfolio">Portfolio Engine</button>
+        <button class="nav-btn" data-view="allocation">Asset Allocation</button>
+        <button class="nav-btn" data-view="annual">Assets 2024-2026</button>
+        <button class="nav-btn" data-view="sterline">Sterline</button>
+        <button class="nav-btn" data-view="finance">Entrate / Uscite</button>
+        <button class="nav-btn" data-view="updates">Aggiornamenti</button>
+      </nav>
+    </aside>
 
-<section id="updates" style="display:none">
-<h2>Aggiornamento mensile</h2>
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="viewTitle">Dashboard</h2>
+          <p id="viewSubtitle">Prima versione completa della tua web app finanziaria.</p>
+        </div>
+      </header>
 
-<h3>Portfolio</h3>
-<input id="nwInput" placeholder="Net Worth">
-<input id="cfInput" placeholder="Cash Flow">
-<button onclick="savePortfolio()">Salva</button>
+      <section id="dashboard" class="view active"></section>
+      <section id="portfolio" class="view"></section>
+      <section id="allocation" class="view"></section>
+      <section id="annual" class="view"></section>
+      <section id="sterline" class="view"></section>
+      <section id="finance" class="view"></section>
+      <section id="updates" class="view"></section>
+    </main>
+  </div>
 
-<h3>Allocation</h3>
-<input id="stocks" placeholder="Stocks">
-<input id="commodities" placeholder="Commodities">
-<input id="cash" placeholder="Cash">
-<button onclick="saveAlloc()">Salva</button>
-
-</section>
-
-<section id="finance" style="display:none">
-<h2>Entrate/Uscite</h2>
-<input id="amount" placeholder="Importo">
-<select id="type">
-<option value="income">Entrata</option>
-<option value="expense">Uscita</option>
-</select>
-<button onclick="addTx()">Aggiungi</button>
-<ul id="list"></ul>
-</section>
-</main>
-</div>
-
-<script src="app.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
