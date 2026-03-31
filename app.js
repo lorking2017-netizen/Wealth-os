@@ -131,6 +131,7 @@ function renderDashboard() {
       let forcedTargetPct = Number(row.targetPct || 0);
       if (row.asset === 'Stocks') forcedTargetPct = 0.99;
       if (row.asset === 'Cash') forcedTargetPct = 0.01;
+      if (row.asset === 'Commodities') forcedTargetPct = 0.00;
 
       const targetValue = totalAllocation * forcedTargetPct;
       const driftEuro = Number(row.current || 0) - targetValue;
@@ -248,7 +249,7 @@ function renderAllocation() {
               ${data.allocationMacro.map(row => `
                 <tr>
                   <td>${row.asset}</td>
-                  <td>${hidden ? maskMoney(row.current) : euro(row.current)}</td>
+                  <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${euro(row.targetEur)}</td>
                   <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
@@ -269,10 +270,10 @@ function renderAllocation() {
                   <td>${row.group}</td>
                   <td>${row.asset}</td>
                   <td>${row.ticker || '-'}</td>
-                  <td>${hidden ? maskMoney(row.current) : euro(row.current)}</td>
+                  <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${row.targetEur === null ? '-' : euro(row.targetEur)}</td>
-                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : `${row.delta > 0 ? '+' : ''}${euro(row.delta)}`}</td>
+                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -2125,33 +2126,13 @@ function getCurrentAllocationMacro() {
     };
   }
 
-  const totalCurrent = Number(values.stocks || 0) + Number(values.commodities || 0) + Number(values.cash || 0);
-
-  const commoditiesBaseTarget = Number(baseRows.find(x => x.asset === 'Commodities')?.targetPct || 0);
-  const remainingTarget = Math.max(0, 1 - commoditiesBaseTarget);
-
-  const stocksBaseTarget = Number(baseRows.find(x => x.asset === 'Stocks')?.targetPct || 0);
-  const cashBaseTarget = Number(baseRows.find(x => x.asset === 'Cash')?.targetPct || 0);
-  const adaptableBaseTotal = stocksBaseTarget + cashBaseTarget;
-
-  const adjustedTargets = {
-    commodities: commoditiesBaseTarget,
-    stocks: adaptableBaseTotal > 0 ? remainingTarget * (stocksBaseTarget / adaptableBaseTotal) : remainingTarget / 2,
-    cash: adaptableBaseTotal > 0 ? remainingTarget * (cashBaseTarget / adaptableBaseTotal) : remainingTarget / 2
-  };
-
   return baseRows.map(row => {
     const key = row.asset.toLowerCase();
-    const current = key in values ? Number(values[key] || 0) : Number(row.current || 0);
-    const targetPct = key in adjustedTargets ? adjustedTargets[key] : Number(row.targetPct || 0);
-    const targetEur = totalCurrent * targetPct;
-
+    const current = key in values ? values[key] : Number(row.current || 0);
     return {
       ...row,
       current,
-      targetPct,
-      targetEur,
-      delta: current - targetEur
+      delta: Number(row.targetEur || 0) - current
     };
   });
 }
@@ -2363,7 +2344,7 @@ function renderUpdates() {
 
       <article class="form-card">
         <h3>Cash e Commodities</h3>
-        <div class="helper">Inserisci cash e commodities del mese. Stocks viene preso automaticamente dalle posizioni. Nella macro allocation il target delle commodities resta fisso; stocks e cash si adattano per completare il 100%.</div>
+        <div class="helper">Inserisci cash e commodities del mese. Stocks viene preso automaticamente dalle posizioni.</div>
         <form id="allocationUpdateForm" class="form-grid">
           <label>
             Mese
