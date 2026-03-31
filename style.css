@@ -383,14 +383,7 @@ button {
 }
 
 
-/* from your base: requested allocation charts + form sizing + no sidebar visual */
-.layout.no-sidebar {
-  grid-template-columns: 1fr;
-}
-.layout.no-sidebar .sidebar {
-  display: none;
-}
-
+/* asset allocation charts */
 .donut-layout {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -422,19 +415,21 @@ button {
 .legend-row {
   display: grid;
   grid-template-columns: 12px minmax(0, 1fr) auto;
-  align-items: center;
   gap: 10px;
+  align-items: center;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--surface-2, var(--panel-2));
+  background: var(--panel-2);
 }
 .legend-dot {
   width: 10px;
   height: 10px;
   border-radius: 999px;
 }
-
+.legend-pct {
+  color: var(--muted);
+}
 .alloc-bars {
   display: grid;
   gap: 14px;
@@ -486,29 +481,6 @@ button {
 .alloc-fill.under {
   background: linear-gradient(90deg, rgba(166,79,79,0.85), rgba(166,79,79,0.5));
 }
-
-.compact-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-.form-grid {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  align-items: start;
-}
-.form-grid > *, .form-grid label, .form-grid input, .form-grid select {
-  min-width: 0;
-}
-.stack, .history-list, .summary-list {
-  display: grid;
-  gap: 16px;
-}
-.history-item, .summary-item {
-  flex-wrap: wrap;
-}
-.panel, .form-card, .card {
-  min-width: 0;
-  overflow: hidden;
-}
-
 @media (max-width: 1200px) {
   .donut-layout {
     grid-template-columns: 1fr;

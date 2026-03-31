@@ -26,28 +26,11 @@ function monthLabel(dateStr) {
   return d.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' });
 }
 
-const ALLOCATION_TARGETS_KEY = 'wealth-os-allocation-targets';
-
-function loadAllocationTargets() {
-  try {
-    return JSON.parse(localStorage.getItem(ALLOCATION_TARGETS_KEY) || '{}');
-  } catch {
-    return {};
-  }
-}
-
-function saveAllocationTargets(targets) {
-  localStorage.setItem(ALLOCATION_TARGETS_KEY, JSON.stringify(targets));
-}
-
-
 function setView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(v => v.classList.remove('active'));
-  const view = document.getElementById(name);
-  if (view) view.classList.add('active');
-  const navBtn = document.querySelector(`.nav-btn[data-view="${name}"]`);
-  if (navBtn) navBtn.classList.add('active');
+  document.getElementById(name).classList.add('active');
+  document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
   document.getElementById('viewTitle').textContent = viewMeta[name][0];
   document.getElementById('viewSubtitle').textContent = viewMeta[name][1];
 }
@@ -56,28 +39,26 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => setView(btn.dataset.view));
 });
 
-function makeLineChart(points, { min = null, max = null, fill = false, formatter = num, lineColor = null, fillColor = null } = {}) {
+function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
   if (!points.length) return '<div class="small">Nessun dato.</div>';
-  const width = 1000, height = 320, pad = 46;
-  const values = points.map(p => Number(p.value || 0));
+  const width = 1000, height = 320, pad = 34;
+  const values = points.map(p => Number(p.value));
   const low = min !== null ? min : Math.min(...values);
   const high = max !== null ? max : Math.max(...values);
   const span = (high - low) || 1;
 
   const xy = points.map((p, i) => {
     const x = pad + (i * (width - pad * 2) / Math.max(points.length - 1, 1));
-    const y = height - pad - ((Number(p.value || 0) - low) / span) * (height - pad * 2);
+    const y = height - pad - ((Number(p.value) - low) / span) * (height - pad * 2);
     return [x, y];
   });
 
-  const stroke = lineColor || (fill ? '#f87171' : '#7dd3fc');
-  const areaFill = fillColor || 'rgba(248,113,113,0.18)';
   const line = xy.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`).join(' ');
   const area = `${line} L ${xy[xy.length - 1][0]} ${height - pad} L ${xy[0][0]} ${height - pad} Z`;
 
   const labels = points.map((p, i) => {
     if (i !== 0 && i !== points.length - 1 && i % Math.ceil(points.length / 6) !== 0) return '';
-    return `<text x="${xy[i][0]}" y="${height - 12}" text-anchor="middle" fill="#99a7c2" font-size="11">${p.label}</text>`;
+    return `<text x="${xy[i][0]}" y="${height - 8}" text-anchor="middle" fill="#99a7c2" font-size="11">${p.label}</text>`;
   }).join('');
 
   const grid = [0, 1, 2, 3, 4].map(i => {
@@ -85,66 +66,18 @@ function makeLineChart(points, { min = null, max = null, fill = false, formatter
     const val = (high - (i / 4) * span);
     return `
       <line x1="${pad}" y1="${y}" x2="${width - pad}" y2="${y}" stroke="rgba(153,167,194,0.18)" />
-      <text x="${pad - 10}" y="${y + 4}" text-anchor="end" fill="#99a7c2" font-size="11">${formatter(val)}</text>
+      <text x="${pad - 8}" y="${y + 4}" text-anchor="end" fill="#99a7c2" font-size="11">${num(val)}</text>
     `;
   }).join('');
 
   return `
     <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
       ${grid}
-      ${fill ? `<path d="${area}" fill="${areaFill}"></path>` : ''}
-      <path d="${line}" fill="none" stroke="${stroke}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></path>
-      ${xy.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="${stroke}"></circle>`).join('')}
+      ${fill ? `<path d="${area}" fill="rgba(248,113,113,0.18)"></path>` : ''}
+      <path d="${line}" fill="none" stroke="${fill ? '#f87171' : '#7dd3fc'}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></path>
+      ${xy.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="${fill ? '#f87171' : '#7dd3fc'}"></circle>`).join('')}
       ${labels}
     </svg>
-  `;
-}
-
-
-function makeDonutChart(rows, centerLabel = 'Allocazione') {
-  const validRows = rows.filter(row => Number(row.current || 0) > 0);
-  const total = validRows.reduce((sum, row) => sum + Number(row.current || 0), 0) || 1;
-  const palette = ['#8c7350', '#1f7a63', '#b05555', '#9a7c2f', '#6b7280', '#bda27c'];
-  let acc = 0;
-
-  const segs = validRows.map((row, idx) => {
-    const pctValue = Number(row.current || 0) / total;
-    const start = acc;
-    const end = acc + pctValue;
-    acc = end;
-    const largeArc = pctValue > 0.5 ? 1 : 0;
-    const startAngle = start * Math.PI * 2 - Math.PI / 2;
-    const endAngle = end * Math.PI * 2 - Math.PI / 2;
-    const x1 = 50 + 36 * Math.cos(startAngle);
-    const y1 = 50 + 36 * Math.sin(startAngle);
-    const x2 = 50 + 36 * Math.cos(endAngle);
-    const y2 = 50 + 36 * Math.sin(endAngle);
-    return {
-      row,
-      pctValue,
-      color: palette[idx % palette.length],
-      path: `M 50 50 L ${x1.toFixed(3)} ${y1.toFixed(3)} A 36 36 0 ${largeArc} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`
-    };
-  });
-
-  return `
-    <div class="donut-layout">
-      <svg viewBox="0 0 100 100" class="donut-chart" aria-label="${centerLabel}">
-        ${segs.map(seg => `<path d="${seg.path}" fill="${seg.color}"></path>`).join('')}
-        <circle cx="50" cy="50" r="18" fill="#fff"></circle>
-        <text x="50" y="46" text-anchor="middle" class="donut-total-label">${centerLabel}</text>
-        <text x="50" y="56" text-anchor="middle" class="donut-total-value">${Math.round(total).toLocaleString('it-IT')}</text>
-      </svg>
-      <div class="donut-legend">
-        ${segs.map(seg => `
-          <div class="legend-row">
-            <span class="legend-dot" style="background:${seg.color}"></span>
-            <span class="legend-name">${seg.row.asset}</span>
-            <span class="legend-pct">${pct(seg.pctValue)}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
   `;
 }
 
@@ -249,21 +182,9 @@ function renderPortfolio() {
 }
 
 function renderAllocation() {
-  const targetOverrides = loadAllocationTargets();
-  const totalAllocation = data.allocationMacro.reduce((sum, row) => sum + Number(row.current || 0), 0);
-
-  const macroRows = data.allocationMacro.map(row => {
-    const targetPct = typeof targetOverrides[row.asset] === 'number' ? targetOverrides[row.asset] : Number(row.targetPct || 0);
-    const targetEur = totalAllocation * targetPct;
-    return {
-      ...row,
-      targetPct,
-      targetEur,
-      delta: Number(row.current || 0) - targetEur
-    };
-  });
-
+  const macroRows = data.allocationMacro.map(row => ({ ...row }));
   const detailRows = data.allocationDetail.map(row => ({ ...row }));
+  const totalAllocation = macroRows.reduce((sum, row) => sum + Number(row.current || 0), 0);
 
   const groupTotals = {};
   detailRows.forEach(row => {
@@ -272,49 +193,38 @@ function renderAllocation() {
   });
   const groupRows = Object.entries(groupTotals).map(([asset, current]) => ({ asset, current }));
 
-  document.getElementById('allocation').innerHTML = `
-    <article class="panel full-width">
-      <h3>Target Allocation Manuale</h3>
-      <div class="helper">Inserisci qui i target percentuali direttamente dal sito. Vengono salvati nel browser.</div>
-      <form id="allocationTargetForm" class="form-grid compact-grid">
-        ${macroRows.map(row => `
-          <label>
-            ${row.asset} Target %
-            <input type="number" step="0.01" min="0" max="1" id="target_${row.asset}" value="${Number(row.targetPct || 0).toFixed(2)}" />
-          </label>
-        `).join('')}
-        <div class="full form-actions">
-          <button type="submit">Salva target allocation</button>
-        </div>
-      </form>
-    </article>
+  const macroBars = `
+    <div class="alloc-bars">
+      ${macroRows.map(row => {
+        const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
+        const driftPct = actualPct - Number(row.targetPct || 0);
 
+        return `
+          <div class="alloc-row">
+            <div class="alloc-head">
+              <span class="alloc-name">${row.asset}</span>
+              <span class="alloc-meta">${euro(row.current)} · ${pct(actualPct)}</span>
+            </div>
+            <div class="alloc-track">
+              <div class="alloc-target" style="width:${Math.max(0, Math.min(100, Number(row.targetPct || 0) * 100))}%"></div>
+              <div class="alloc-fill ${driftPct >= 0 ? 'over' : 'under'}" style="width:${Math.max(0, Math.min(100, actualPct * 100))}%"></div>
+            </div>
+            <div class="alloc-foot">
+              <span>Target ${pct(row.targetPct)}</span>
+              <span class="${Number(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${Number(row.delta || 0) > 0 ? '+' : ''}${euro(row.delta)}</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  document.getElementById('allocation').innerHTML = `
     <div class="grid-2">
       <article class="panel">
         <h3>Macro Allocation</h3>
         ${makeDonutChart(macroRows, 'Macro')}
-        <div class="alloc-bars">
-          ${macroRows.map(row => {
-            const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
-            const driftPct = actualPct - Number(row.targetPct || 0);
-            return `
-              <div class="alloc-row">
-                <div class="alloc-head">
-                  <span class="alloc-name">${row.asset}</span>
-                  <span class="alloc-meta">${euro(row.current)} · ${pct(actualPct)}</span>
-                </div>
-                <div class="alloc-track">
-                  <div class="alloc-target" style="width:${Math.max(0, Math.min(100, Number(row.targetPct || 0) * 100))}%"></div>
-                  <div class="alloc-fill ${driftPct >= 0 ? 'over' : 'under'}" style="width:${Math.max(0, Math.min(100, actualPct * 100))}%"></div>
-                </div>
-                <div class="alloc-foot">
-                  <span>Target ${pct(row.targetPct)}</span>
-                  <span class="${Number(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${Number(row.delta || 0) > 0 ? '+' : ''}${euro(row.delta)}</span>
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
+        ${macroBars}
         <div class="table-wrap">
           <table>
             <thead><tr><th>Asset</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
@@ -332,7 +242,6 @@ function renderAllocation() {
           </table>
         </div>
       </article>
-
       <article class="panel">
         <h3>Dettaglio Allocation</h3>
         ${makeDonutChart(groupRows, 'Gruppi')}
@@ -357,21 +266,8 @@ function renderAllocation() {
       </article>
     </div>
   `;
-
-  const form = document.getElementById('allocationTargetForm');
-  if (form) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const nextTargets = {};
-      macroRows.forEach(row => {
-        const input = document.getElementById(`target_${row.asset}`);
-        nextTargets[row.asset] = Number(input.value || 0);
-      });
-      saveAllocationTargets(nextTargets);
-      renderAllocation();
-    });
-  }
 }
+
 function renderAnnual() {
   const container = document.getElementById('annual');
   container.innerHTML = `
@@ -479,79 +375,65 @@ function renderSterline() {
     <div id="sterlineContent"></div>
   `;
 
-  function getSterlineYearData(year) {
-    const yearData = JSON.parse(JSON.stringify(data.sterlineData[year]));
-    if (year === '2024' && !yearData.totals.totalValue.some(v => v !== null && v !== undefined)) {
-      const findRow = (name) => yearData.items.find(item => item.name === name);
-      const totalRow = findRow('Total Value');
-      const changeRow = findRow('Value Change');
-      const pctRow = findRow('Change %');
-      if (totalRow) yearData.totals.totalValue = totalRow.values;
-      if (changeRow) yearData.totals.valueChange = changeRow.values;
-      if (pctRow) yearData.totals.changePct = pctRow.values;
-    }
-    return yearData;
+  function getTopRowValues(yearData, label) {
+    const keyMap = {
+      'Total Value': 'totalValue',
+      'Value Change': 'valueChange',
+      'Change %': 'changePct'
+    };
+    const totalsKey = keyMap[label];
+    const fromTotals = yearData.totals && Array.isArray(yearData.totals[totalsKey]) ? yearData.totals[totalsKey] : [];
+    const fromItems = yearData.items.find(item => item.name === label)?.values || [];
+    const hasFromItems = fromItems.some(v => v !== null && v !== undefined && v !== '');
+    return hasFromItems ? fromItems : fromTotals;
   }
 
   function paint(year) {
-    const yearData = getSterlineYearData(year);
+    const yearData = data.sterlineData[year];
     const cols = ['Start', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-    const topRows = [
-      { name: 'Total Value', values: yearData.totals.totalValue, emphasis: true },
-      { name: 'Value Change', values: yearData.totals.valueChange },
-      { name: 'Change %', values: yearData.totals.changePct, isPercent: true }
-    ];
+    const totalValueRow = getTopRowValues(yearData, 'Total Value');
+    const valueChangeRow = getTopRowValues(yearData, 'Value Change');
+    const changePctRow = getTopRowValues(yearData, 'Change %');
+
+    const totals = `
+      <article class="panel">
+        <h3>Totali ${year}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Voce</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+            <tbody>
+              <tr class="summary-emphasis"><td>Total Value</td>${totalValueRow.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}</tr>
+              <tr><td>Value Change</td>${valueChangeRow.map(v => `<td class="${typeof v === 'number' ? (v >= 0 ? 'delta-pos' : 'delta-neg') : ''}">${typeof v === 'number' ? `${v > 0 ? '+' : ''}${num(v)}` : (v || '-')}</td>`).join('')}</tr>
+              <tr><td>Change %</td>${changePctRow.map(v => `<td class="${typeof v === 'number' ? (v >= 0 ? 'delta-pos' : 'delta-neg') : ''}">${typeof v === 'number' ? pct(v) : (v || '-')}</td>`).join('')}</tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `;
 
     const filteredItems = yearData.items.filter(item => !['Total Value', 'Value Change', 'Change %'].includes(item.name));
-    const allRows = [...topRows, ...filteredItems];
 
-    const latestValue = yearData.totals.totalValue[yearData.totals.totalValue.length - 1];
-    const latestChange = yearData.totals.valueChange[yearData.totals.valueChange.length - 1];
-    const latestPct = yearData.totals.changePct[yearData.totals.changePct.length - 1];
-    const totalPoints = yearData.totals.totalValue.map((v, idx) => ({ label: cols[idx], value: Number(v || 0) }));
-
-    document.getElementById('sterlineContent').innerHTML = `
-      ${makeSeriesCards([
-        { label: `Sterline ${year}`, value: latestValue == null ? '-' : euro(latestValue), sub: 'Valore totale ultimo dato' },
-        { label: 'Value Change', value: latestChange == null ? '-' : `${latestChange > 0 ? '+' : ''}${euro(latestChange)}`, className: Number(latestChange || 0) >= 0 ? 'good' : 'bad', sub: 'Variazione assoluta' },
-        { label: 'Change %', value: latestPct == null ? '-' : pct(latestPct), className: Number(latestPct || 0) >= 0 ? 'good' : 'bad', sub: 'Variazione percentuale' }
-      ])}
-
-      <div class="grid-2">
-        <article class="panel">
-          <h3>Valore Totale Sterline ${year}</h3>
-          <div class="chart-wrap">${makeLineChart(totalPoints, { formatter: euro })}</div>
-        </article>
-        <article class="panel">
-          <h3>Elenco Sterline ${year}</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Nome</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
-              <tbody>
-                ${allRows.map(item => `
-                  <tr class="${item.emphasis ? 'summary-emphasis' : ''}">
-                    <td>${item.name}</td>
-                    ${item.values.map(v => {
-                      if (v === null || v === undefined || v === '') return `<td>-</td>`;
-                      if (item.isPercent && typeof v === 'number') {
-                        const cls = v >= 0 ? 'delta-pos' : 'delta-neg';
-                        return `<td class="${cls}">${pct(v)}</td>`;
-                      }
-                      if (item.name === 'Value Change' && typeof v === 'number') {
-                        const cls = v >= 0 ? 'delta-pos' : 'delta-neg';
-                        return `<td class="${cls}">${v > 0 ? '+' : ''}${num(v)}</td>`;
-                      }
-                      return `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`;
-                    }).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </article>
-      </div>
+    const table = `
+      <article class="panel">
+        <h3>Elenco Sterline ${year}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nome</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${filteredItems.map(item => `
+                <tr>
+                  <td>${item.name}</td>
+                  ${item.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </article>
     `;
+
+    document.getElementById('sterlineContent').innerHTML = totals + table;
   }
 
   document.querySelectorAll('#sterlineTabs .chip').forEach(btn => {
@@ -564,6 +446,7 @@ function renderSterline() {
 
   paint('2024');
 }
+
 function loadTransactions() {
   const raw = localStorage.getItem(TRANSACTION_KEY);
   if (!raw) {
