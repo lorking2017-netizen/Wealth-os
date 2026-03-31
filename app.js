@@ -26,12 +26,14 @@ function monthLabel(dateStr) {
   return d.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' });
 }
 
+let __wealthOsNetWorthHidden = true;
+
 function isNetWorthHidden() {
-  return sessionStorage.getItem('wealth-os-hide-networth') !== 'false';
+  return __wealthOsNetWorthHidden;
 }
 
 function setNetWorthHidden(hidden) {
-  sessionStorage.setItem('wealth-os-hide-networth', hidden ? 'true' : 'false');
+  __wealthOsNetWorthHidden = hidden;
 }
 
 function maskMoney(value) {
@@ -125,7 +127,8 @@ function renderDashboard() {
 
     return data.allocationMacro.map(row => {
       const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
-      const drift = actualPct - Number(row.targetPct || 0);
+      const targetValue = totalAllocation * Number(row.targetPct || 0);
+      const driftEuro = Number(row.current || 0) - targetValue;
 
       return `
         <tr>
@@ -133,7 +136,7 @@ function renderDashboard() {
           <td>${hidden ? maskMoney(row.current) : euro(row.current)}</td>
           <td>${pct(actualPct)}</td>
           <td>${pct(row.targetPct)}</td>
-          <td class="${drift >= 0 ? 'delta-pos' : 'delta-neg'}">${drift > 0 ? '+' : ''}${(drift * 100).toFixed(2)} pp</td>
+          <td class="${driftEuro >= 0 ? 'delta-pos' : 'delta-neg'}">${hidden ? maskMoney(Math.abs(driftEuro)) : `${driftEuro > 0 ? '+' : ''}${euro(driftEuro)}`}</td>
         </tr>
       `;
     }).join('');
@@ -167,7 +170,7 @@ function renderDashboard() {
       <article class="panel">
         <h3>Asset Allocation attuale</h3>
         <table>
-          <thead><tr><th>Asset</th><th>Valore</th><th>Actual %</th><th>Target %</th><th>Drift</th></tr></thead>
+          <thead><tr><th>Asset</th><th>Valore</th><th>Actual %</th><th>Target %</th><th>Drift €</th></tr></thead>
           <tbody>${allocationRows}</tbody>
         </table>
       </article>
