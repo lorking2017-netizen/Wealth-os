@@ -80,6 +80,57 @@ function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
     </svg>
   `;
 
+function safeLink(url, label) {
+  if (!url) return label;
+  return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="instrument-link">${label}</a>`;
+}
+
+function makeDonutChart(rows) {
+  const total = rows.reduce((sum, row) => sum + Number(row.current || 0), 0) || 1;
+  const palette = ['#b8945e', '#7bb59e', '#c97a74', '#8f9bad', '#9b7bc9', '#d0a96a'];
+  let acc = 0;
+
+  const segs = rows.map((row, idx) => {
+    const value = Number(row.current || 0);
+    const pct = value / total;
+    const start = acc;
+    const end = acc + pct;
+    acc = end;
+
+    const large = pct > 0.5 ? 1 : 0;
+    const startAngle = start * Math.PI * 2 - Math.PI / 2;
+    const endAngle = end * Math.PI * 2 - Math.PI / 2;
+
+    const x1 = 50 + 38 * Math.cos(startAngle);
+    const y1 = 50 + 38 * Math.sin(startAngle);
+    const x2 = 50 + 38 * Math.cos(endAngle);
+    const y2 = 50 + 38 * Math.sin(endAngle);
+
+    const path = `M 50 50 L ${x1.toFixed(3)} ${y1.toFixed(3)} A 38 38 0 ${large} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`;
+    return { path, color: palette[idx % palette.length], row, pct };
+  });
+
+  return `
+    <div class="donut-layout">
+      <svg viewBox="0 0 100 100" class="donut-chart" aria-label="Asset allocation">
+        ${segs.map(seg => `<path d="${seg.path}" fill="${seg.color}" opacity="0.95"></path>`).join('')}
+        <circle cx="50" cy="50" r="19" fill="#11161c"></circle>
+        <text x="50" y="48" text-anchor="middle" class="donut-total-label">Total</text>
+        <text x="50" y="56" text-anchor="middle" class="donut-total-value">${Math.round(total).toLocaleString('it-IT')}</text>
+      </svg>
+      <div class="donut-legend">
+        ${segs.map(seg => `
+          <div class="legend-row">
+            <span class="legend-dot" style="background:${seg.color}"></span>
+            <span class="legend-name">${seg.row.asset}</span>
+            <span class="legend-pct">${pct(seg.pct)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function makeSeriesCards(items) {
   return `
     <div class="cards section-cards">
@@ -195,10 +246,38 @@ function renderPortfolio() {
 }
 
 function renderAllocation() {
+  const totalAllocation = data.allocationMacro.reduce((sum, row) => sum + Number(row.current || 0), 0);
+  const macroBars = `
+    <div class="alloc-bars">
+      ${data.allocationMacro.map(row => {
+        const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
+        return `
+          <div class="alloc-row">
+            <div class="alloc-head">
+              <span class="alloc-name">${row.asset}</span>
+              <span class="alloc-meta">${euro(row.current)} · ${pct(actualPct)}</span>
+            </div>
+            <div class="alloc-track">
+              <div class="alloc-target" style="width:${Math.max(0, Math.min(100, Number(row.targetPct || 0) * 100))}%"></div>
+              <div class="alloc-fill ${actualPct >= Number(row.targetPct || 0) ? 'over' : 'under'}" style="width:${Math.max(0, Math.min(100, actualPct * 100))}%"></div>
+            </div>
+            <div class="alloc-foot">
+              <span>Target ${pct(row.targetPct)}</span>
+              <span class="${Number(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${Number(row.delta || 0) > 0 ? '+' : ''}${euro(row.delta)}</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
   document.getElementById('allocation').innerHTML = `
     <div class="grid-2">
       <article class="panel">
+        <div class="panel-kicker">Allocation Snapshot</div>
         <h3>Macro Allocation</h3>
+        ${makeDonutChart(data.allocationMacro)}
+        ${macroBars}
         <div class="table-wrap">
           <table>
             <thead><tr><th>Asset</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
@@ -209,7 +288,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${euro(row.targetEur)}</td>
-                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
+                  <td class="${Number(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${Number(row.delta || 0) > 0 ? '+' : ''}${euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -217,6 +296,7 @@ function renderAllocation() {
         </div>
       </article>
       <article class="panel">
+        <div class="panel-kicker">Portfolio Composition</div>
         <h3>Dettaglio Allocation</h3>
         <div class="table-wrap">
           <table>
@@ -225,12 +305,12 @@ function renderAllocation() {
               ${data.allocationDetail.map(row => `
                 <tr>
                   <td>${row.group}</td>
-                  <td>${row.asset}</td>
+                  <td>${row.link ? safeLink(row.link, row.asset) : row.asset}</td>
                   <td>${row.ticker || '-'}</td>
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${row.targetEur === null ? '-' : euro(row.targetEur)}</td>
-                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : euro(row.delta)}</td>
+                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : `${row.delta > 0 ? '+' : ''}${euro(row.delta)}`}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -373,7 +453,7 @@ function renderAnnual() {
               <tbody>
                 ${yearData.sections[sectionName].map(row => `
                   <tr>
-                    <td>${row.name}</td>
+                    <td>${row.link ? safeLink(row.link, row.name) : row.name}</td>
                     <td>${row.currency || '-'}</td>
                     ${row.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
                   </tr>
@@ -476,7 +556,7 @@ function renderSterline() {
               <tbody>
                 ${allRows.map(item => `
                   <tr class="${item.emphasis ? 'summary-emphasis' : ''}">
-                    <td>${item.name}</td>
+                    <td>${item.link ? safeLink(item.link, item.name) : item.name}</td>
                     ${item.values.map(v => {
                       if (v === null || v === undefined || v === '') return `<td>-</td>`;
                       if (item.isPercent && typeof v === 'number') {
@@ -666,7 +746,8 @@ const DEFAULT_WATCHLIST = [
     "price": 4470.5,
     "ytd": 0.040594958217918586,
     "lastMonth": 0.040594958217918586,
-    "note": "Importato da 2026"
+    "note": "Importato da 2026",
+    "link": "https://www.bullionbypost.eu/gold-price/one-year-gold-price/"
   },
   {
     "name": "Bitcoin",
@@ -674,7 +755,8 @@ const DEFAULT_WATCHLIST = [
     "price": 56850.21,
     "ytd": -0.23292526277441206,
     "lastMonth": -0.23292526277441206,
-    "note": "Importato da 2026"
+    "note": "Importato da 2026",
+    "link": "https://www.google.com/finance/quote/BTC-EUR?hl=en&window=YTD"
   },
   {
     "name": "Palantir Technologies, Inc.",
@@ -682,7 +764,8 @@ const DEFAULT_WATCHLIST = [
     "price": 73.92,
     "ytd": 3.918163672654691,
     "lastMonth": 0.18708848562710778,
-    "note": "Importato da 2024"
+    "note": "Importato da 2024",
+    "link": "https://www.justetf.com/en/stock-profiles/US69608A1088"
   },
   {
     "name": "SWDA SW",
@@ -690,7 +773,8 @@ const DEFAULT_WATCHLIST = [
     "price": 113.35,
     "ytd": 0.012324729838349535,
     "lastMonth": 0.012324729838349535,
-    "note": "Importato da 2026"
+    "note": "Importato da 2026",
+    "link": "https://www.ishares.com/ch/individual/en/products/251882/ishares-msci-world-ucits-etf-acc-fund"
   },
   {
     "name": "CSSPX SW",
@@ -698,7 +782,8 @@ const DEFAULT_WATCHLIST = [
     "price": 551.04,
     "ytd": -0.10935833198642331,
     "lastMonth": 0.04971996799634226,
-    "note": "Importato da 2025"
+    "note": "Importato da 2025",
+    "link": "https://www.ishares.com/ch/individual/en/products/253743/ishares-sp-500-b-ucits-etf-acc-fund"
   },
   {
     "name": "EIMI SW",
@@ -706,7 +791,8 @@ const DEFAULT_WATCHLIST = [
     "price": 43.51,
     "ytd": 0.06799214531173292,
     "lastMonth": 0.06799214531173292,
-    "note": "Importato da 2026"
+    "note": "Importato da 2026",
+    "link": "https://www.ishares.com/ch/individual/en/products/264659/ishares-msci-emerging-markets-imi-ucits-etf"
   },
   {
     "name": "EURCHF",
@@ -714,7 +800,8 @@ const DEFAULT_WATCHLIST = [
     "price": 0.928,
     "ytd": -0.015906680805938378,
     "lastMonth": -0.0042918454935622075,
-    "note": "Importato da 2025"
+    "note": "Importato da 2025",
+    "link": "https://it.tradingview.com/symbols/EURCHF/"
   },
   {
     "name": "EURUSD",
@@ -722,7 +809,8 @@ const DEFAULT_WATCHLIST = [
     "price": 1.181,
     "ytd": -0.0033755274261603185,
     "lastMonth": -0.0033755274261603185,
-    "note": "Importato da 2026"
+    "note": "Importato da 2026",
+    "link": "https://it.tradingview.com/symbols/EURUSD/"
   },
   {
     "name": "USDCHF",
@@ -730,7 +818,8 @@ const DEFAULT_WATCHLIST = [
     "price": 0.769,
     "ytd": -0.01029601029601035,
     "lastMonth": -0.01029601029601035,
-    "note": "Importato da 2026"
+    "note": "Importato da 2026",
+    "link": "https://it.tradingview.com/symbols/USDCHF/"
   }
 ];
 
@@ -2291,7 +2380,7 @@ function renderWatchlist() {
           <tbody>
             ${items.length ? items.map((item, idx) => `
               <tr>
-                <td>${item.name}</td>
+                <td>${item.link ? safeLink(item.link, item.name) : item.name}</td>
                 <td>${item.ticker || '-'}</td>
                 <td>${num(item.price)}</td>
                 <td class="${Number(item.ytd || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${item.ytd === null || item.ytd === '' ? '-' : pct(item.ytd)}</td>
@@ -2478,7 +2567,7 @@ function renderUpdates() {
               ${latestMonthPositions.length ? latestMonthPositions.map((item, idx) => `
                 <tr>
                   <td>${item.date}</td>
-                  <td>${item.name}</td>
+                  <td>${item.link ? safeLink(item.link, item.name) : item.name}</td>
                   <td>${item.ticker || '-'}</td>
                   <td>${item.category || '-'}</td>
                   <td>${item.quotes === null || item.quotes === undefined ? '-' : num(item.quotes)}</td>
