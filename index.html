@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wealth OS Bank Terminal Professional</title>
-  <link rel="stylesheet" href="style.css?v=banklight1" />
+  <title>Wealth OS Bank Desk Professional</title>
+  <link rel="stylesheet" href="style.css?v=bankdesk2" />
 </head>
 <body>
   <div class="layout">
     <aside class="sidebar">
       <div class="brand">
-        <h1>Wealth OS Terminal</h1>
-        <p>Wealth monitoring, allocation e reporting</p>
+        <h1>Wealth OS Bank Desk</h1>
+        <p>Allocation, reporting e monitoraggio patrimoniale</p>
       </div>
 
       <nav class="nav">
@@ -29,9 +29,38 @@
 
     <main class="main">
       <header class="topbar">
-        <div>
+        <div class="topbar-block">
+          <div class="eyebrow">Bank Terminal</div>
           <h2 id="viewTitle">Dashboard</h2>
           <p id="viewSubtitle">Prima versione completa della tua web app finanziaria.</p>
+        </div>
+        <div class="quick-nav">
+          <div class="quick-nav-group">
+            <label for="quickSection">Sezione</label>
+            <select id="quickSection">
+              <option value="dashboard">Dashboard</option>
+              <option value="portfolio">Portfolio Engine</option>
+              <option value="allocation">Asset Allocation</option>
+              <option value="annual">Assets 2024-2026</option>
+              <option value="positions">Posizioni</option>
+              <option value="watchlist">Watchlist</option>
+              <option value="sterline">Sterline</option>
+              <option value="finance">Entrate / Uscite</option>
+              <option value="updates">Aggiornamenti</option>
+            </select>
+          </div>
+          <div class="quick-nav-group">
+            <label for="quickYear">Navigazione rapida</label>
+            <select id="quickYear">
+              <option value="">Vai a...</option>
+              <option value="annual:2024">Assets 2024</option>
+              <option value="annual:2025">Assets 2025</option>
+              <option value="annual:2026">Assets 2026</option>
+              <option value="sterline:2024">Sterline 2024</option>
+              <option value="sterline:2025">Sterline 2025</option>
+              <option value="sterline:2026">Sterline 2026</option>
+            </select>
+          </div>
         </div>
       </header>
 
@@ -47,7 +76,49 @@
     </main>
   </div>
 
-  <script src="data.js?v=banklight1"></script>
-  <script src="app.js?v=banklight1"></script>
+  <script src="data.js?v=bankdesk2"></script>
+  <script src="app.js?v=bankdesk2"></script>
+
+<script>
+window.addEventListener('load', () => {
+  const sectionSelect = document.getElementById('quickSection');
+  const yearSelect = document.getElementById('quickYear');
+
+  const syncSection = () => {
+    const active = document.querySelector('.nav-btn.active');
+    if (active && sectionSelect) sectionSelect.value = active.dataset.view || 'dashboard';
+  };
+
+  if (sectionSelect) {
+    sectionSelect.addEventListener('change', () => {
+      const btn = document.querySelector(`.nav-btn[data-view="${sectionSelect.value}"]`);
+      if (btn) btn.click();
+    });
+  }
+
+  if (yearSelect) {
+    yearSelect.addEventListener('change', () => {
+      if (!yearSelect.value) return;
+      const [view, year] = yearSelect.value.split(':');
+      const btn = document.querySelector(`.nav-btn[data-view="${view}"]`);
+      if (btn) btn.click();
+
+      setTimeout(() => {
+        const tabSelector = view === 'annual' ? '#annualTabs .chip' : '#sterlineTabs .chip';
+        document.querySelectorAll(tabSelector).forEach(chip => {
+          if (chip.dataset.year === year) chip.click();
+        });
+      }, 80);
+    });
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => setTimeout(syncSection, 30));
+  });
+
+  syncSection();
+});
+</script>
+
 </body>
 </html>
