@@ -127,7 +127,12 @@ function renderDashboard() {
 
     return data.allocationMacro.map(row => {
       const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
-      const targetValue = totalAllocation * Number(row.targetPct || 0);
+
+      let forcedTargetPct = Number(row.targetPct || 0);
+      if (row.asset === 'Stocks') forcedTargetPct = 0.99;
+      if (row.asset === 'Cash') forcedTargetPct = 0.01;
+
+      const targetValue = totalAllocation * forcedTargetPct;
       const driftEuro = Number(row.current || 0) - targetValue;
 
       return `
@@ -135,7 +140,7 @@ function renderDashboard() {
           <td>${row.asset}</td>
           <td>${hidden ? maskMoney(row.current) : euro(row.current)}</td>
           <td>${pct(actualPct)}</td>
-          <td>${pct(row.targetPct)}</td>
+          <td>${pct(forcedTargetPct)}</td>
           <td class="${driftEuro >= 0 ? 'delta-pos' : 'delta-neg'}">${hidden ? maskMoney(Math.abs(driftEuro)) : `${driftEuro > 0 ? '+' : ''}${euro(driftEuro)}`}</td>
         </tr>
       `;
