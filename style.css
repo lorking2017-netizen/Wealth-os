@@ -455,3 +455,14 @@ tbody tr:hover td {
   .cards, .form-grid { grid-template-columns: 1fr; }
   .topbar h2 { font-size: 1.55rem; }
 }
+
+
+.section-cards {
+  margin-bottom: 16px;
+}
+.section-cards .card {
+  min-height: 128px;
+}
+.grid-2 .panel {
+  min-width: 0;
+}
