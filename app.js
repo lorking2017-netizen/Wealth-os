@@ -27,16 +27,11 @@ function monthLabel(dateStr) {
 }
 
 function isNetWorthHidden() {
-  if (!window.__wealthOsNetWorthHiddenInitialized) {
-    window.__wealthOsNetWorthHidden = true;
-    window.__wealthOsNetWorthHiddenInitialized = true;
-  }
-  return window.__wealthOsNetWorthHidden;
+  return sessionStorage.getItem('wealth-os-hide-networth') !== 'false';
 }
 
 function setNetWorthHidden(hidden) {
-  window.__wealthOsNetWorthHidden = hidden;
-  window.__wealthOsNetWorthHiddenInitialized = true;
+  sessionStorage.setItem('wealth-os-hide-networth', hidden ? 'true' : 'false');
 }
 
 function maskMoney(value) {
@@ -113,7 +108,7 @@ function renderDashboard() {
           <h3>Net Worth attuale</h3>
           <span class="privacy-pill">${hidden ? 'Nascosto' : 'Visibile'}</span>
         </div>
-        <p id="netWorthMetric" class="metric">${hidden ? maskMoney(latest.netWorth) : euro(latest.netWorth)}</p>
+        <p class="metric">${hidden ? maskMoney(latest.netWorth) : euro(latest.netWorth)}</p>
         <div class="metric-sub">${monthLabel(latest.date)} · Tocca per ${hidden ? 'mostrare' : 'nascondere'}</div>
       </article>
       <article class="card"><h3>Crescita totale</h3><p class="metric good">${pct(data.portfolioMetrics.netWorthGrowth)}</p><div class="metric-sub">Da inizio tracking</div></article>
@@ -269,7 +264,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${row.targetEur === null ? '-' : euro(row.targetEur)}</td>
-                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : euro(row.delta)}</td>
+                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : `${row.delta > 0 ? '+' : ''}${euro(row.delta)}`}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -2122,13 +2117,33 @@ function getCurrentAllocationMacro() {
     };
   }
 
+  const totalCurrent = Number(values.stocks || 0) + Number(values.commodities || 0) + Number(values.cash || 0);
+
+  const commoditiesBaseTarget = Number(baseRows.find(x => x.asset === 'Commodities')?.targetPct || 0);
+  const remainingTarget = Math.max(0, 1 - commoditiesBaseTarget);
+
+  const stocksBaseTarget = Number(baseRows.find(x => x.asset === 'Stocks')?.targetPct || 0);
+  const cashBaseTarget = Number(baseRows.find(x => x.asset === 'Cash')?.targetPct || 0);
+  const adaptableBaseTotal = stocksBaseTarget + cashBaseTarget;
+
+  const adjustedTargets = {
+    commodities: commoditiesBaseTarget,
+    stocks: adaptableBaseTotal > 0 ? remainingTarget * (stocksBaseTarget / adaptableBaseTotal) : remainingTarget / 2,
+    cash: adaptableBaseTotal > 0 ? remainingTarget * (cashBaseTarget / adaptableBaseTotal) : remainingTarget / 2
+  };
+
   return baseRows.map(row => {
     const key = row.asset.toLowerCase();
-    const current = key in values ? values[key] : Number(row.current || 0);
+    const current = key in values ? Number(values[key] || 0) : Number(row.current || 0);
+    const targetPct = key in adjustedTargets ? adjustedTargets[key] : Number(row.targetPct || 0);
+    const targetEur = totalCurrent * targetPct;
+
     return {
       ...row,
       current,
-      delta: Number(row.targetEur || 0) - current
+      targetPct,
+      targetEur,
+      delta: current - targetEur
     };
   });
 }
@@ -2340,7 +2355,7 @@ function renderUpdates() {
 
       <article class="form-card">
         <h3>Cash e Commodities</h3>
-        <div class="helper">Inserisci cash e commodities del mese. Stocks viene preso automaticamente dalle posizioni.</div>
+        <div class="helper">Inserisci cash e commodities del mese. Stocks viene preso automaticamente dalle posizioni. Nella macro allocation il target delle commodities resta fisso; stocks e cash si adattano per completare il 100%.</div>
         <form id="allocationUpdateForm" class="form-grid">
           <label>
             Mese
