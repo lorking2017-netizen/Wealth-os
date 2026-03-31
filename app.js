@@ -240,7 +240,7 @@ function renderAllocation() {
               ${data.allocationMacro.map(row => `
                 <tr>
                   <td>${row.asset}</td>
-                  <td>${euro(row.current)}</td>
+                  <td>${hidden ? maskMoney(row.current) : euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${euro(row.targetEur)}</td>
                   <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
@@ -261,7 +261,7 @@ function renderAllocation() {
                   <td>${row.group}</td>
                   <td>${row.asset}</td>
                   <td>${row.ticker || '-'}</td>
-                  <td>${euro(row.current)}</td>
+                  <td>${hidden ? maskMoney(row.current) : euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${row.targetEur === null ? '-' : euro(row.targetEur)}</td>
                   <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : `${row.delta > 0 ? '+' : ''}${euro(row.delta)}`}</td>
