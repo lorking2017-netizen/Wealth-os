@@ -130,7 +130,7 @@ function renderDashboard() {
       return `
         <tr>
           <td>${row.asset}</td>
-          <td>${euro(row.current)}</td>
+          <td>${hidden ? maskMoney(row.current) : euro(row.current)}</td>
           <td>${pct(actualPct)}</td>
           <td>${pct(row.targetPct)}</td>
           <td class="${drift >= 0 ? 'delta-pos' : 'delta-neg'}">${drift > 0 ? '+' : ''}${(drift * 100).toFixed(2)} pp</td>
