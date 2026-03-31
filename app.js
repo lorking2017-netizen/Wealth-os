@@ -30,14 +30,46 @@ function setView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(v => v.classList.remove('active'));
   document.getElementById(name).classList.add('active');
-  document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
+  const activeBtn = document.querySelector(`.nav-btn[data-view="${name}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
   document.getElementById('viewTitle').textContent = viewMeta[name][0];
   document.getElementById('viewSubtitle').textContent = viewMeta[name][1];
+
+  const primaryNav = document.getElementById('primaryNav');
+  if (primaryNav) primaryNav.value = name;
 }
 
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => setView(btn.dataset.view));
 });
+
+function initTopNavigation() {
+  const primaryNav = document.getElementById('primaryNav');
+  const quickYearNav = document.getElementById('quickYearNav');
+
+  if (primaryNav) {
+    primaryNav.addEventListener('change', () => {
+      setView(primaryNav.value);
+    });
+  }
+
+  if (quickYearNav) {
+    quickYearNav.addEventListener('change', () => {
+      const value = quickYearNav.value;
+      if (!value) return;
+      const [view, year] = value.split(':');
+      setView(view);
+
+      requestAnimationFrame(() => {
+        const tabsId = view === 'annual' ? '#annualTabs .chip' : '#sterlineTabs .chip';
+        const chips = document.querySelectorAll(tabsId);
+        chips.forEach(chip => {
+          if (chip.dataset.year === year) chip.click();
+        });
+      });
+    });
+  }
+}
 
 function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
   if (!points.length) return '<div class="small">Nessun dato.</div>';
@@ -2709,3 +2741,4 @@ function rerenderAll() {
 
 // rerender with enhanced views
 rerenderAll();
+initTopNavigation();
