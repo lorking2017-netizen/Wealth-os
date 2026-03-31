@@ -79,8 +79,57 @@ function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
       ${labels}
     </svg>
   `;
+}
+
+
+function makeDonutChart(rows, titleText = 'Allocation') {
+  const validRows = rows.filter(row => Number(row.current || 0) > 0);
+  const total = validRows.reduce((sum, row) => sum + Number(row.current || 0), 0) || 1;
+  const palette = ['#8c7350', '#1f7a63', '#b05555', '#9a7c2f', '#6b7280', '#bda27c'];
+  let acc = 0;
+
+  const segments = validRows.map((row, idx) => {
+    const value = Number(row.current || 0);
+    const pctValue = value / total;
+    const start = acc;
+    const end = acc + pctValue;
+    acc = end;
+
+    const largeArc = pctValue > 0.5 ? 1 : 0;
+    const startAngle = start * Math.PI * 2 - Math.PI / 2;
+    const endAngle = end * Math.PI * 2 - Math.PI / 2;
+    const x1 = 50 + 36 * Math.cos(startAngle);
+    const y1 = 50 + 36 * Math.sin(startAngle);
+    const x2 = 50 + 36 * Math.cos(endAngle);
+    const y2 = 50 + 36 * Math.sin(endAngle);
+    const path = `M 50 50 L ${x1.toFixed(3)} ${y1.toFixed(3)} A 36 36 0 ${largeArc} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`;
+
+    return { row, pctValue, color: palette[idx % palette.length], path };
+  });
+
+  return `
+    <div class="donut-layout">
+      <svg viewBox="0 0 100 100" class="donut-chart" aria-label="${titleText}">
+        ${segments.map(seg => `<path d="${seg.path}" fill="${seg.color}"></path>`).join('')}
+        <circle cx="50" cy="50" r="18" fill="#ffffff"></circle>
+        <text x="50" y="47" text-anchor="middle" class="donut-total-label">${titleText}</text>
+        <text x="50" y="56" text-anchor="middle" class="donut-total-value">${Math.round(total).toLocaleString('it-IT')}</text>
+      </svg>
+      <div class="donut-legend">
+        ${segments.map(seg => `
+          <div class="legend-row">
+            <span class="legend-dot" style="background:${seg.color}"></span>
+            <span class="legend-name">${seg.row.asset}</span>
+            <span class="legend-pct">${pct(seg.pctValue)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
 
 function makeSeriesCards(items) {
+
   return `
     <div class="cards section-cards">
       ${items.map(item => `
@@ -194,35 +243,80 @@ function renderPortfolio() {
   `;
 }
 
+
 function renderAllocation() {
+  const macroRows = data.allocationMacro.map(row => ({ ...row }));
+  const detailRows = data.allocationDetail.map(row => ({ ...row }));
+  const totalAllocation = macroRows.reduce((sum, row) => sum + Number(row.current || 0), 0);
+
+  const groupTotals = {};
+  detailRows.forEach(row => {
+    const group = row.group || 'Other';
+    groupTotals[group] = (groupTotals[group] || 0) + Number(row.current || 0);
+  });
+
+  const groupRows = Object.entries(groupTotals).map(([asset, current]) => ({ asset, current }));
+
+  const macroBars = `
+    <div class="alloc-bars">
+      ${macroRows.map(row => {
+        const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
+        const driftPct = actualPct - Number(row.targetPct || 0);
+
+        return `
+          <div class="alloc-row">
+            <div class="alloc-head">
+              <span class="alloc-name">${row.asset}</span>
+              <span class="alloc-meta">${euro(row.current)} · ${pct(actualPct)}</span>
+            </div>
+            <div class="alloc-track">
+              <div class="alloc-target" style="width:${Math.max(0, Math.min(100, Number(row.targetPct || 0) * 100))}%"></div>
+              <div class="alloc-fill ${driftPct >= 0 ? 'over' : 'under'}" style="width:${Math.max(0, Math.min(100, actualPct * 100))}%"></div>
+            </div>
+            <div class="alloc-foot">
+              <span>Target ${pct(row.targetPct)}</span>
+              <span class="${Number(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${Number(row.delta || 0) > 0 ? '+' : ''}${euro(row.delta)}</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
   document.getElementById('allocation').innerHTML = `
     <div class="grid-2">
       <article class="panel">
-        <h3>Macro Allocation</h3>
+        <div class="panel-kicker">Macro Allocation</div>
+        <h3>Distribuzione principale</h3>
+        ${makeDonutChart(macroRows, 'Macro')}
+        ${macroBars}
         <div class="table-wrap">
           <table>
             <thead><tr><th>Asset</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
             <tbody>
-              ${data.allocationMacro.map(row => `
+              ${macroRows.map(row => `
                 <tr>
                   <td>${row.asset}</td>
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${euro(row.targetEur)}</td>
-                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
+                  <td class="${Number(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${Number(row.delta || 0) > 0 ? '+' : ''}${euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
         </div>
       </article>
+
       <article class="panel">
-        <h3>Dettaglio Allocation</h3>
+        <div class="panel-kicker">Sub Allocation</div>
+        <h3>Dettaglio strumenti</h3>
+        ${makeDonutChart(groupRows, 'Gruppi')}
         <div class="table-wrap">
           <table>
             <thead><tr><th>Gruppo</th><th>Asset</th><th>Ticker</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
             <tbody>
-              ${data.allocationDetail.map(row => `
+              ${detailRows.map(row => `
                 <tr>
                   <td>${row.group}</td>
                   <td>${row.asset}</td>
@@ -230,7 +324,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${row.targetEur === null ? '-' : euro(row.targetEur)}</td>
-                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : euro(row.delta)}</td>
+                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : `${row.delta > 0 ? '+' : ''}${euro(row.delta)}`}</td>
                 </tr>
               `).join('')}
             </tbody>
