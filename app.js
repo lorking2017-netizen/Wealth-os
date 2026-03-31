@@ -34,41 +34,29 @@ function setView(name) {
   if (activeBtn) activeBtn.classList.add('active');
   document.getElementById('viewTitle').textContent = viewMeta[name][0];
   document.getElementById('viewSubtitle').textContent = viewMeta[name][1];
-
-  const primaryNav = document.getElementById('primaryNav');
-  if (primaryNav) primaryNav.value = name;
 }
 
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => setView(btn.dataset.view));
 });
 
-function initTopNavigation() {
-  const primaryNav = document.getElementById('primaryNav');
-  const quickYearNav = document.getElementById('quickYearNav');
+function initSidebarNavigation() {
+  const layout = document.querySelector('.layout');
+  const toggle = document.getElementById('sidebarToggle');
 
-  if (primaryNav) {
-    primaryNav.addEventListener('change', () => {
-      setView(primaryNav.value);
+  if (toggle && layout) {
+    toggle.addEventListener('click', () => {
+      layout.classList.toggle('sidebar-collapsed');
     });
   }
 
-  if (quickYearNav) {
-    quickYearNav.addEventListener('change', () => {
-      const value = quickYearNav.value;
-      if (!value) return;
-      const [view, year] = value.split(':');
-      setView(view);
-
-      requestAnimationFrame(() => {
-        const tabsId = view === 'annual' ? '#annualTabs .chip' : '#sterlineTabs .chip';
-        const chips = document.querySelectorAll(tabsId);
-        chips.forEach(chip => {
-          if (chip.dataset.year === year) chip.click();
-        });
-      });
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (window.innerWidth <= 920 && layout) {
+        layout.classList.add('sidebar-collapsed');
+      }
     });
-  }
+  });
 }
 
 function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
@@ -2741,4 +2729,4 @@ function rerenderAll() {
 
 // rerender with enhanced views
 rerenderAll();
-initTopNavigation();
+initSidebarNavigation();

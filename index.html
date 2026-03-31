@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wealth OS Terminal</title>
-  <link rel="stylesheet" href="style.css?v=terminalnav1" />
+  <link rel="stylesheet" href="style.css?v=proterm1" />
 </head>
 <body>
   <div class="layout">
@@ -29,40 +29,14 @@
 
     <main class="main">
       <header class="topbar">
-        <div>
-          <h2 id="viewTitle">Dashboard</h2>
-          <p id="viewSubtitle">Prima versione completa della tua web app finanziaria.</p>
+        <div class="topbar-left">
+          <button id="sidebarToggle" class="sidebar-toggle" aria-label="Apri o chiudi navigazione">☰</button>
+          <div>
+            <h2 id="viewTitle">Dashboard</h2>
+            <p id="viewSubtitle">Prima versione completa della tua web app finanziaria.</p>
+          </div>
         </div>
       </header>
-
-      <section class="top-navigation">
-        <div class="nav-group">
-          <label class="top-nav-label" for="primaryNav">Navigazione principale</label>
-          <select id="primaryNav" class="top-nav-select">
-            <option value="dashboard">Dashboard</option>
-            <option value="portfolio">Portfolio Engine</option>
-            <option value="allocation">Asset Allocation</option>
-            <option value="annual">Assets 2024-2026</option>
-            <option value="positions">Posizioni</option>
-            <option value="watchlist">Watchlist</option>
-            <option value="sterline">Sterline</option>
-            <option value="finance">Entrate / Uscite</option>
-            <option value="updates">Aggiornamenti</option>
-          </select>
-        </div>
-        <div class="nav-group">
-          <label class="top-nav-label" for="quickYearNav">Vai a un anno / blocco</label>
-          <select id="quickYearNav" class="top-nav-select">
-            <option value="">Seleziona vista rapida</option>
-            <option value="annual:2024">Assets 2024</option>
-            <option value="annual:2025">Assets 2025</option>
-            <option value="annual:2026">Assets 2026</option>
-            <option value="sterline:2024">Sterline 2024</option>
-            <option value="sterline:2025">Sterline 2025</option>
-            <option value="sterline:2026">Sterline 2026</option>
-          </select>
-        </div>
-      </section>
 
       <section id="dashboard" class="view active"></section>
       <section id="portfolio" class="view"></section>
@@ -76,7 +50,7 @@
     </main>
   </div>
 
-  <script src="data.js?v=terminalnav1"></script>
-  <script src="app.js?v=terminalnav1"></script>
+  <script src="data.js?v=proterm1"></script>
+  <script src="app.js?v=proterm1"></script>
 </body>
 </html>
