@@ -81,55 +81,7 @@ function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
   `;
 }
 
-
-function makeDonutChart(rows, titleText = 'Allocation') {
-  const validRows = rows.filter(row => Number(row.current || 0) > 0);
-  const total = validRows.reduce((sum, row) => sum + Number(row.current || 0), 0) || 1;
-  const palette = ['#8c7350', '#1f7a63', '#b05555', '#9a7c2f', '#6b7280', '#bda27c'];
-  let acc = 0;
-
-  const segments = validRows.map((row, idx) => {
-    const value = Number(row.current || 0);
-    const pctValue = value / total;
-    const start = acc;
-    const end = acc + pctValue;
-    acc = end;
-
-    const largeArc = pctValue > 0.5 ? 1 : 0;
-    const startAngle = start * Math.PI * 2 - Math.PI / 2;
-    const endAngle = end * Math.PI * 2 - Math.PI / 2;
-    const x1 = 50 + 36 * Math.cos(startAngle);
-    const y1 = 50 + 36 * Math.sin(startAngle);
-    const x2 = 50 + 36 * Math.cos(endAngle);
-    const y2 = 50 + 36 * Math.sin(endAngle);
-    const path = `M 50 50 L ${x1.toFixed(3)} ${y1.toFixed(3)} A 36 36 0 ${largeArc} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`;
-
-    return { row, pctValue, color: palette[idx % palette.length], path };
-  });
-
-  return `
-    <div class="donut-layout">
-      <svg viewBox="0 0 100 100" class="donut-chart" aria-label="${titleText}">
-        ${segments.map(seg => `<path d="${seg.path}" fill="${seg.color}"></path>`).join('')}
-        <circle cx="50" cy="50" r="18" fill="#ffffff"></circle>
-        <text x="50" y="47" text-anchor="middle" class="donut-total-label">${titleText}</text>
-        <text x="50" y="56" text-anchor="middle" class="donut-total-value">${Math.round(total).toLocaleString('it-IT')}</text>
-      </svg>
-      <div class="donut-legend">
-        ${segments.map(seg => `
-          <div class="legend-row">
-            <span class="legend-dot" style="background:${seg.color}"></span>
-            <span class="legend-name">${seg.row.asset}</span>
-            <span class="legend-pct">${pct(seg.pctValue)}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-}
-
 function makeSeriesCards(items) {
-
   return `
     <div class="cards section-cards">
       ${items.map(item => `
@@ -195,7 +147,7 @@ function renderDashboard() {
                 <td>${row.asset}</td>
                 <td>${euro(row.current)}</td>
                 <td>${pct(row.targetPct)}</td>
-                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
+                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta > 0 ? '+' : ''}${euro(row.delta)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -243,80 +195,35 @@ function renderPortfolio() {
   `;
 }
 
-
 function renderAllocation() {
-  const macroRows = data.allocationMacro.map(row => ({ ...row }));
-  const detailRows = data.allocationDetail.map(row => ({ ...row }));
-  const totalAllocation = macroRows.reduce((sum, row) => sum + Number(row.current || 0), 0);
-
-  const groupTotals = {};
-  detailRows.forEach(row => {
-    const group = row.group || 'Other';
-    groupTotals[group] = (groupTotals[group] || 0) + Number(row.current || 0);
-  });
-
-  const groupRows = Object.entries(groupTotals).map(([asset, current]) => ({ asset, current }));
-
-  const macroBars = `
-    <div class="alloc-bars">
-      ${macroRows.map(row => {
-        const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
-        const driftPct = actualPct - Number(row.targetPct || 0);
-
-        return `
-          <div class="alloc-row">
-            <div class="alloc-head">
-              <span class="alloc-name">${row.asset}</span>
-              <span class="alloc-meta">${euro(row.current)} · ${pct(actualPct)}</span>
-            </div>
-            <div class="alloc-track">
-              <div class="alloc-target" style="width:${Math.max(0, Math.min(100, Number(row.targetPct || 0) * 100))}%"></div>
-              <div class="alloc-fill ${driftPct >= 0 ? 'over' : 'under'}" style="width:${Math.max(0, Math.min(100, actualPct * 100))}%"></div>
-            </div>
-            <div class="alloc-foot">
-              <span>Target ${pct(row.targetPct)}</span>
-              <span class="${Number(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${Number(row.delta || 0) > 0 ? '+' : ''}${euro(row.delta)}</span>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-
   document.getElementById('allocation').innerHTML = `
     <div class="grid-2">
       <article class="panel">
-        <div class="panel-kicker">Macro Allocation</div>
-        <h3>Distribuzione principale</h3>
-        ${makeDonutChart(macroRows, 'Macro')}
-        ${macroBars}
+        <h3>Macro Allocation</h3>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Asset</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
             <tbody>
-              ${macroRows.map(row => `
+              ${data.allocationMacro.map(row => `
                 <tr>
                   <td>${row.asset}</td>
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${euro(row.targetEur)}</td>
-                  <td class="${Number(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${Number(row.delta || 0) > 0 ? '+' : ''}${euro(row.delta)}</td>
+                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta > 0 ? '+' : ''}${euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
         </div>
       </article>
-
       <article class="panel">
-        <div class="panel-kicker">Sub Allocation</div>
-        <h3>Dettaglio strumenti</h3>
-        ${makeDonutChart(groupRows, 'Gruppi')}
+        <h3>Dettaglio Allocation</h3>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Gruppo</th><th>Asset</th><th>Ticker</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
             <tbody>
-              ${detailRows.map(row => `
+              ${data.allocationDetail.map(row => `
                 <tr>
                   <td>${row.group}</td>
                   <td>${row.asset}</td>
@@ -346,162 +253,76 @@ function renderAnnual() {
     <div id="annualContent"></div>
   `;
 
-  function sumSectionRows(rows) {
-    if (!rows || !rows.length) return Array(13).fill(null);
-    const sums = Array(13).fill(0);
-    let hasNumeric = false;
-    rows.forEach(row => {
-      row.values.forEach((v, idx) => {
-        if (typeof v === 'number') {
-          sums[idx] += v;
-          hasNumeric = true;
-        }
-      });
-    });
-    return hasNumeric ? sums : Array(13).fill(null);
-  }
-
-  function computeChangeSeries(values) {
-    return values.map((v, idx, arr) => {
-      if (idx === 0 || typeof v !== 'number' || typeof arr[idx - 1] !== 'number') return null;
-      return v - arr[idx - 1];
-    });
-  }
-
-  function computePctSeries(values) {
-    return values.map((v, idx, arr) => {
-      if (idx === 0 || typeof v !== 'number' || typeof arr[idx - 1] !== 'number' || arr[idx - 1] === 0) return null;
-      return (v / arr[idx - 1]) - 1;
-    });
-  }
-
   function paint(year) {
     const yearData = data.annualData[year];
     const cols = ['Start', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const sectionHtml = Object.entries(yearData.sections).map(([sectionName, rows]) => `
+      <article class="panel">
+        <h3>${sectionName}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Cur</th>
+                ${cols.map(col => `<th>${col}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  <td>${row.name}</td>
+                  <td>${row.currency || '-'}</td>
+                  ${row.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `).join('');
+
     const summary = yearData.summary;
-    const percentRows = new Set(['Change %']);
-    const stocksTotal = sumSectionRows(yearData.sections['Stocks'] || []);
-    const cashTotal = sumSectionRows(yearData.sections['Cash - Liquidity'] || []);
-    const commoditiesTotal = sumSectionRows(yearData.sections['Commodities'] || []);
+    const summaryLabelMap = {
+      nwEur: 'NW (EUR)',
+      nwEurChange: 'NW Change',
+      nwEurPct: 'Change %',
+      nwChf: 'NW (CHF)',
+      nwUsd: 'NW (USD)'
+    };
+    const percentRows = new Set(['nwEurPct']);
 
-    const nwSeries = summary.nwEur && summary.nwEur.some(v => typeof v === 'number')
-      ? summary.nwEur
-      : stocksTotal.map((_, idx) => {
-          const s = typeof stocksTotal[idx] === 'number' ? stocksTotal[idx] : 0;
-          const c = typeof cashTotal[idx] === 'number' ? cashTotal[idx] : 0;
-          const m = typeof commoditiesTotal[idx] === 'number' ? commoditiesTotal[idx] : 0;
-          return s + c + m;
-        });
-
-    const nwChangeSeries = summary.nwEurChange && summary.nwEurChange.some(v => typeof v === 'number')
-      ? summary.nwEurChange
-      : computeChangeSeries(nwSeries);
-
-    const nwPctSeries = summary.nwEurPct && summary.nwEurPct.some(v => typeof v === 'number')
-      ? summary.nwEurPct
-      : computePctSeries(nwSeries);
-
-    const topRows = [
-      { key: 'Stocks Total', values: stocksTotal },
-      { key: 'Cash Total', values: cashTotal },
-      { key: 'Commodities Total', values: commoditiesTotal },
-      { key: 'NW (EUR)', values: nwSeries, emphasis: true },
-      { key: 'NW Change', values: nwChangeSeries },
-      { key: 'Change %', values: nwPctSeries, isPercent: true }
-    ];
-
-    if (summary.nwChf) topRows.push({ key: 'NW (CHF)', values: summary.nwChf });
-    if (summary.nwUsd) topRows.push({ key: 'NW (USD)', values: summary.nwUsd });
-
-    const summaryRows = topRows.map(row => `
-      <tr class="${row.emphasis ? 'summary-emphasis' : ''}">
-        <td>${row.key}</td>
-        ${row.values.map(v => {
+    const summaryRows = Object.entries(summary).map(([key, values]) => `
+      <tr>
+        <td>${summaryLabelMap[key] || key}</td>
+        ${values.map(v => {
           if (v === null || v === undefined || v === '') return `<td>-</td>`;
-          if (row.isPercent && typeof v === 'number') {
+          if (percentRows.has(key) && typeof v === 'number') {
             const cls = v >= 0 ? 'delta-pos' : 'delta-neg';
             return `<td class="${cls}">${pct(v)}</td>`;
           }
-          if (typeof v === 'number') {
-            const cls = row.key === 'NW Change' ? (v >= 0 ? 'delta-pos' : 'delta-neg') : '';
-            const signed = row.key === 'NW Change' && v > 0 ? '+' : '';
-            return `<td class="${cls}">${signed}${num(v)}</td>`;
-          }
+          if (typeof v === 'number') return `<td>${num(v)}</td>`;
           return `<td>${v || '-'}</td>`;
         }).join('')}
       </tr>
     `).join('');
 
-    const latestNw = nwSeries[nwSeries.length - 1];
-    const latestChange = nwChangeSeries[nwChangeSeries.length - 1];
-    const latestPct = nwPctSeries[nwPctSeries.length - 1];
-
-    const cards = makeSeriesCards([
-      { label: `Net Worth ${year}`, value: latestNw == null ? '-' : euro(latestNw), sub: 'Ultimo dato disponibile' },
-      { label: 'Monthly Change', value: latestChange == null ? '-' : `${latestChange > 0 ? '+' : ''}${euro(latestChange)}`, className: Number(latestChange || 0) >= 0 ? 'good' : 'bad', sub: 'Variazione ultimo mese' },
-      { label: 'Change %', value: latestPct == null ? '-' : pct(latestPct), className: Number(latestPct || 0) >= 0 ? 'good' : 'bad', sub: 'Momentum mensile' }
-    ]);
-
-    const nwPoints = nwSeries.map((v, idx) => ({ label: cols[idx], value: Number(v || 0) }));
-
-    const sectionOrder = ['Stocks', 'Cash - Liquidity', 'Commodities', 'Finance', 'Simple'];
-    const sectionHtml = sectionOrder
-      .filter(sectionName => yearData.sections[sectionName] && yearData.sections[sectionName].length)
-      .map(sectionName => `
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-kicker">Year ${year}</div>
-              <h3>${sectionName}</h3>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Cur</th>
-                  ${cols.map(col => `<th>${col}</th>`).join('')}
-                </tr>
-              </thead>
-              <tbody>
-                ${yearData.sections[sectionName].map(row => `
-                  <tr>
-                    <td>${row.name}</td>
-                    <td>${row.currency || '-'}</td>
-                    ${row.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </article>
-      `).join('');
-
     document.getElementById('annualContent').innerHTML = `
-      ${cards}
-      <div class="grid-2">
-        <article class="panel">
-          <div class="panel-kicker">Yearly Trend</div>
-          <h3>Net Worth Trend ${year}</h3>
-          <div class="chart-wrap">${makeLineChart(nwPoints)}</div>
-        </article>
-        <article class="panel">
-          <div class="panel-kicker">Summary Matrix</div>
-          <h3>Riepilogo ${year}</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Voce</th>
-                  ${cols.map(col => `<th>${col}</th>`).join('')}
-                </tr>
-              </thead>
-              <tbody>${summaryRows}</tbody>
-            </table>
-          </div>
-        </article>
-      </div>
+      <article class="panel">
+        <h3>Riepilogo ${year}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Voce</th>
+                ${cols.map(col => `<th>${col}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>${summaryRows}</tbody>
+          </table>
+        </div>
+      </article>
       ${sectionHtml}
     `;
   }
@@ -531,66 +352,43 @@ function renderSterline() {
   function paint(year) {
     const yearData = data.sterlineData[year];
     const cols = ['Start', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const filteredItems = yearData.items.filter(item => !['Total Value', 'Value Change', 'Change %'].includes(item.name));
 
-    const latestValue = yearData.totals.totalValue[yearData.totals.totalValue.length - 1];
-    const latestChange = yearData.totals.valueChange[yearData.totals.valueChange.length - 1];
-    const latestPct = yearData.totals.changePct[yearData.totals.changePct.length - 1];
-
-    const cards = makeSeriesCards([
-      { label: `Sterline ${year}`, value: latestValue == null ? '-' : euro(latestValue), sub: 'Valore totale ultimo dato' },
-      { label: 'Value Change', value: latestChange == null ? '-' : `${latestChange > 0 ? '+' : ''}${euro(latestChange)}`, className: Number(latestChange || 0) >= 0 ? 'good' : 'bad', sub: 'Variazione assoluta' },
-      { label: 'Change %', value: latestPct == null ? '-' : pct(latestPct), className: Number(latestPct || 0) >= 0 ? 'good' : 'bad', sub: 'Variazione percentuale' }
-    ]);
-
-    const totalPoints = yearData.totals.totalValue.map((v, idx) => ({ label: cols[idx], value: Number(v || 0) }));
-
-    const topThreeRows = [
-      { name: 'Total Value', values: yearData.totals.totalValue, emphasis: true },
-      { name: 'Value Change', values: yearData.totals.valueChange },
-      { name: 'Change %', values: yearData.totals.changePct, isPercent: true }
-    ];
-
-    const allRows = [...topThreeRows, ...filteredItems];
-
-    document.getElementById('sterlineContent').innerHTML = `
-      ${cards}
-      <div class="grid-2">
-        <article class="panel">
-          <div class="panel-kicker">Gold Inventory Trend</div>
-          <h3>Valore Totale Sterline ${year}</h3>
-          <div class="chart-wrap">${makeLineChart(totalPoints)}</div>
-        </article>
-        <article class="panel">
-          <div class="panel-kicker">Inventory Ledger</div>
-          <h3>Elenco Sterline ${year}</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Nome</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
-              <tbody>
-                ${allRows.map(item => `
-                  <tr class="${item.emphasis ? 'summary-emphasis' : ''}">
-                    <td>${item.name}</td>
-                    ${item.values.map(v => {
-                      if (v === null || v === undefined || v === '') return `<td>-</td>`;
-                      if (item.isPercent && typeof v === 'number') {
-                        const cls = v >= 0 ? 'delta-pos' : 'delta-neg';
-                        return `<td class="${cls}">${pct(v)}</td>`;
-                      }
-                      if (item.name === 'Value Change' && typeof v === 'number') {
-                        const cls = v >= 0 ? 'delta-pos' : 'delta-neg';
-                        return `<td class="${cls}">${v > 0 ? '+' : ''}${num(v)}</td>`;
-                      }
-                      return `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`;
-                    }).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </article>
-      </div>
+    const totals = `
+      <article class="panel">
+        <h3>Totali ${year}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Voce</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+            <tbody>
+              <tr><td>Total Value</td>${yearData.totals.totalValue.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}</tr>
+              <tr><td>Value Change</td>${yearData.totals.valueChange.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}</tr>
+              <tr><td>Change %</td>${yearData.totals.changePct.map(v => `<td>${typeof v === 'number' ? pct(v) : (v || '-')}</td>`).join('')}</tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
     `;
+
+    const table = `
+      <article class="panel">
+        <h3>Elenco Sterline ${year}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nome</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${yearData.items.map(item => `
+                <tr>
+                  <td>${item.name}</td>
+                  ${item.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `;
+
+    document.getElementById('sterlineContent').innerHTML = totals + table;
   }
 
   document.querySelectorAll('#sterlineTabs .chip').forEach(btn => {
@@ -2292,7 +2090,7 @@ function getCurrentAllocationMacro() {
     return {
       ...row,
       current,
-      delta: Number(row.targetEur || 0) - current
+      delta: current - Number(row.targetEur || 0)
     };
   });
 }
