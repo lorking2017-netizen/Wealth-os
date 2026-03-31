@@ -79,6 +79,36 @@ function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
       ${labels}
     </svg>
   `;
+
+function makeAllocationBars(rows, hidden) {
+  const total = rows.reduce((sum, row) => sum + Number(row.current || 0), 0) || 1;
+
+  return `
+    <div class="alloc-bars">
+      ${rows.map(row => {
+        const actualPct = total ? Number(row.current || 0) / total : 0;
+        const targetPct = row.asset === 'Stocks' ? 0.99 : row.asset === 'Cash' ? 0.01 : 0.00;
+        const drift = actualPct - targetPct;
+
+        return `
+          <div class="alloc-row">
+            <div class="alloc-head">
+              <span class="alloc-name">${row.asset}</span>
+              <span class="alloc-meta">${pct(actualPct)} · Target ${pct(targetPct)}</span>
+            </div>
+            <div class="alloc-track">
+              <div class="alloc-target" style="width:${Math.max(0, Math.min(100, targetPct * 100))}%"></div>
+              <div class="alloc-fill ${drift >= 0 ? 'over' : 'under'}" style="width:${Math.max(0, Math.min(100, actualPct * 100))}%"></div>
+            </div>
+            <div class="alloc-foot">
+              <span>${hidden ? maskMoney(row.current) : euro(row.current)}</span>
+              <span class="${drift >= 0 ? 'delta-pos' : 'delta-neg'}">${drift >= 0 ? 'Over' : 'Under'} ${pct(Math.abs(drift))}</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
 }
 
 function renderDashboard() {
@@ -205,6 +235,7 @@ function renderDashboard() {
       <article class="panel">
         <div class="panel-kicker">Allocation Monitor</div>
         <h3>Asset Allocation attuale</h3>
+        ${makeAllocationBars(data.allocationMacro, hidden)}
         <div class="table-wrap">
           <table>
             <thead><tr><th>Asset</th><th>Valore</th><th>Actual %</th><th>Target %</th><th>Drift €</th></tr></thead>
@@ -364,21 +395,44 @@ function renderAnnual() {
       'Commodities': 'Commodities Total'
     };
 
-    Object.entries(sectionMap).forEach(([sectionName, label]) => {
-      const values = sumSectionRows(yearData.sections[sectionName] || []);
-      if (values.some(v => typeof v === 'number' && v !== 0)) {
+    // For 2024 the upper summary in the spreadsheet is incomplete.
+    // We promote the bottom total rows to the top summary panel.
+    if (year === '2024') {
+      Object.entries(sectionMap).forEach(([sectionName, label]) => {
+        const values = sumSectionRows(yearData.sections[sectionName] || []);
         topSummaryRows.push({ key: label, values, isPercent: false, isEmphasis: true });
-      }
-    });
-
-    Object.entries(summary).forEach(([key, values]) => {
-      topSummaryRows.push({
-        key: summaryLabelMap[key] || key,
-        values,
-        isPercent: percentRows.has(key),
-        isEmphasis: key === 'nwEur'
       });
-    });
+
+      const totalSeries = topSummaryRows[0]?.values || Array(13).fill(null);
+      const changeSeries = totalSeries.map((v, idx, arr) => {
+        if (idx === 0 || typeof v !== 'number' || typeof arr[idx - 1] !== 'number') return null;
+        return v - arr[idx - 1];
+      });
+      const pctSeries = totalSeries.map((v, idx, arr) => {
+        if (idx === 0 || typeof v !== 'number' || typeof arr[idx - 1] !== 'number' || arr[idx - 1] === 0) return null;
+        return (v / arr[idx - 1]) - 1;
+      });
+
+      topSummaryRows.push({ key: 'NW (EUR)', values: totalSeries, isPercent: false, isEmphasis: true });
+      topSummaryRows.push({ key: 'NW Change', values: changeSeries, isPercent: false, isEmphasis: false });
+      topSummaryRows.push({ key: 'Change %', values: pctSeries, isPercent: true, isEmphasis: false });
+    } else {
+      Object.entries(sectionMap).forEach(([sectionName, label]) => {
+        const values = sumSectionRows(yearData.sections[sectionName] || []);
+        if (values.some(v => typeof v === 'number' && v !== 0)) {
+          topSummaryRows.push({ key: label, values, isPercent: false, isEmphasis: true });
+        }
+      });
+
+      Object.entries(summary).forEach(([key, values]) => {
+        topSummaryRows.push({
+          key: summaryLabelMap[key] || key,
+          values,
+          isPercent: percentRows.has(key),
+          isEmphasis: key === 'nwEur'
+        });
+      });
+    }
 
     const summaryRows = topSummaryRows.map(row => `
       <tr class="${row.isEmphasis ? 'summary-emphasis' : ''}">
