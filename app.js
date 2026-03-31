@@ -79,70 +79,6 @@ function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
       ${labels}
     </svg>
   `;
-
-function safeLink(url, label) {
-  if (!url) return label;
-  return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="instrument-link">${label}</a>`;
-}
-
-function makeDonutChart(rows) {
-  const total = rows.reduce((sum, row) => sum + Number(row.current || 0), 0) || 1;
-  const palette = ['#b8945e', '#7bb59e', '#c97a74', '#8f9bad', '#9b7bc9', '#d0a96a'];
-  let acc = 0;
-
-  const segs = rows.map((row, idx) => {
-    const value = Number(row.current || 0);
-    const pct = value / total;
-    const start = acc;
-    const end = acc + pct;
-    acc = end;
-
-    const large = pct > 0.5 ? 1 : 0;
-    const startAngle = start * Math.PI * 2 - Math.PI / 2;
-    const endAngle = end * Math.PI * 2 - Math.PI / 2;
-
-    const x1 = 50 + 38 * Math.cos(startAngle);
-    const y1 = 50 + 38 * Math.sin(startAngle);
-    const x2 = 50 + 38 * Math.cos(endAngle);
-    const y2 = 50 + 38 * Math.sin(endAngle);
-
-    const path = `M 50 50 L ${x1.toFixed(3)} ${y1.toFixed(3)} A 38 38 0 ${large} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`;
-    return { path, color: palette[idx % palette.length], row, pct };
-  });
-
-  return `
-    <div class="donut-layout">
-      <svg viewBox="0 0 100 100" class="donut-chart" aria-label="Asset allocation">
-        ${segs.map(seg => `<path d="${seg.path}" fill="${seg.color}" opacity="0.95"></path>`).join('')}
-        <circle cx="50" cy="50" r="19" fill="#11161c"></circle>
-        <text x="50" y="48" text-anchor="middle" class="donut-total-label">Total</text>
-        <text x="50" y="56" text-anchor="middle" class="donut-total-value">${Math.round(total).toLocaleString('it-IT')}</text>
-      </svg>
-      <div class="donut-legend">
-        ${segs.map(seg => `
-          <div class="legend-row">
-            <span class="legend-dot" style="background:${seg.color}"></span>
-            <span class="legend-name">${seg.row.asset}</span>
-            <span class="legend-pct">${pct(seg.pct)}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-}
-
-function makeSeriesCards(items) {
-  return `
-    <div class="cards section-cards">
-      ${items.map(item => `
-        <article class="card">
-          <h3>${item.label}</h3>
-          <p class="metric ${item.className || ''}">${item.value}</p>
-          <div class="metric-sub">${item.sub || ''}</div>
-        </article>
-      `).join('')}
-    </div>
-  `;
 }
 
 function renderDashboard() {
@@ -246,38 +182,10 @@ function renderPortfolio() {
 }
 
 function renderAllocation() {
-  const totalAllocation = data.allocationMacro.reduce((sum, row) => sum + Number(row.current || 0), 0);
-  const macroBars = `
-    <div class="alloc-bars">
-      ${data.allocationMacro.map(row => {
-        const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
-        return `
-          <div class="alloc-row">
-            <div class="alloc-head">
-              <span class="alloc-name">${row.asset}</span>
-              <span class="alloc-meta">${euro(row.current)} · ${pct(actualPct)}</span>
-            </div>
-            <div class="alloc-track">
-              <div class="alloc-target" style="width:${Math.max(0, Math.min(100, Number(row.targetPct || 0) * 100))}%"></div>
-              <div class="alloc-fill ${actualPct >= Number(row.targetPct || 0) ? 'over' : 'under'}" style="width:${Math.max(0, Math.min(100, actualPct * 100))}%"></div>
-            </div>
-            <div class="alloc-foot">
-              <span>Target ${pct(row.targetPct)}</span>
-              <span class="${Number(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${Number(row.delta || 0) > 0 ? '+' : ''}${euro(row.delta)}</span>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-
   document.getElementById('allocation').innerHTML = `
     <div class="grid-2">
       <article class="panel">
-        <div class="panel-kicker">Allocation Snapshot</div>
         <h3>Macro Allocation</h3>
-        ${makeDonutChart(data.allocationMacro)}
-        ${macroBars}
         <div class="table-wrap">
           <table>
             <thead><tr><th>Asset</th><th>Current</th><th>Target %</th><th>Target EUR</th><th>Delta</th></tr></thead>
@@ -288,7 +196,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${euro(row.targetEur)}</td>
-                  <td class="${Number(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${Number(row.delta || 0) > 0 ? '+' : ''}${euro(row.delta)}</td>
+                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -296,7 +204,6 @@ function renderAllocation() {
         </div>
       </article>
       <article class="panel">
-        <div class="panel-kicker">Portfolio Composition</div>
         <h3>Dettaglio Allocation</h3>
         <div class="table-wrap">
           <table>
@@ -305,12 +212,12 @@ function renderAllocation() {
               ${data.allocationDetail.map(row => `
                 <tr>
                   <td>${row.group}</td>
-                  <td>${row.link ? safeLink(row.link, row.asset) : row.asset}</td>
+                  <td>${row.asset}</td>
                   <td>${row.ticker || '-'}</td>
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${row.targetEur === null ? '-' : euro(row.targetEur)}</td>
-                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : `${row.delta > 0 ? '+' : ''}${euro(row.delta)}`}</td>
+                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -332,162 +239,76 @@ function renderAnnual() {
     <div id="annualContent"></div>
   `;
 
-  function sumSectionRows(rows) {
-    if (!rows || !rows.length) return Array(13).fill(null);
-    const sums = Array(13).fill(0);
-    let hasNumeric = false;
-    rows.forEach(row => {
-      row.values.forEach((v, idx) => {
-        if (typeof v === 'number') {
-          sums[idx] += v;
-          hasNumeric = true;
-        }
-      });
-    });
-    return hasNumeric ? sums : Array(13).fill(null);
-  }
-
-  function computeChangeSeries(values) {
-    return values.map((v, idx, arr) => {
-      if (idx === 0 || typeof v !== 'number' || typeof arr[idx - 1] !== 'number') return null;
-      return v - arr[idx - 1];
-    });
-  }
-
-  function computePctSeries(values) {
-    return values.map((v, idx, arr) => {
-      if (idx === 0 || typeof v !== 'number' || typeof arr[idx - 1] !== 'number' || arr[idx - 1] === 0) return null;
-      return (v / arr[idx - 1]) - 1;
-    });
-  }
-
   function paint(year) {
     const yearData = data.annualData[year];
     const cols = ['Start', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const sectionHtml = Object.entries(yearData.sections).map(([sectionName, rows]) => `
+      <article class="panel">
+        <h3>${sectionName}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Cur</th>
+                ${cols.map(col => `<th>${col}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  <td>${row.name}</td>
+                  <td>${row.currency || '-'}</td>
+                  ${row.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `).join('');
+
     const summary = yearData.summary;
-    const percentRows = new Set(['Change %']);
-    const stocksTotal = sumSectionRows(yearData.sections['Stocks'] || []);
-    const cashTotal = sumSectionRows(yearData.sections['Cash - Liquidity'] || []);
-    const commoditiesTotal = sumSectionRows(yearData.sections['Commodities'] || []);
+    const summaryLabelMap = {
+      nwEur: 'NW (EUR)',
+      nwEurChange: 'NW Change',
+      nwEurPct: 'Change %',
+      nwChf: 'NW (CHF)',
+      nwUsd: 'NW (USD)'
+    };
+    const percentRows = new Set(['nwEurPct']);
 
-    const nwSeries = summary.nwEur && summary.nwEur.some(v => typeof v === 'number')
-      ? summary.nwEur
-      : stocksTotal.map((_, idx) => {
-          const s = typeof stocksTotal[idx] === 'number' ? stocksTotal[idx] : 0;
-          const c = typeof cashTotal[idx] === 'number' ? cashTotal[idx] : 0;
-          const m = typeof commoditiesTotal[idx] === 'number' ? commoditiesTotal[idx] : 0;
-          return s + c + m;
-        });
-
-    const nwChangeSeries = summary.nwEurChange && summary.nwEurChange.some(v => typeof v === 'number')
-      ? summary.nwEurChange
-      : computeChangeSeries(nwSeries);
-
-    const nwPctSeries = summary.nwEurPct && summary.nwEurPct.some(v => typeof v === 'number')
-      ? summary.nwEurPct
-      : computePctSeries(nwSeries);
-
-    const topRows = [
-      { key: 'Stocks Total', values: stocksTotal },
-      { key: 'Cash Total', values: cashTotal },
-      { key: 'Commodities Total', values: commoditiesTotal },
-      { key: 'NW (EUR)', values: nwSeries, emphasis: true },
-      { key: 'NW Change', values: nwChangeSeries },
-      { key: 'Change %', values: nwPctSeries, isPercent: true }
-    ];
-
-    if (summary.nwChf) topRows.push({ key: 'NW (CHF)', values: summary.nwChf });
-    if (summary.nwUsd) topRows.push({ key: 'NW (USD)', values: summary.nwUsd });
-
-    const summaryRows = topRows.map(row => `
-      <tr class="${row.emphasis ? 'summary-emphasis' : ''}">
-        <td>${row.key}</td>
-        ${row.values.map(v => {
+    const summaryRows = Object.entries(summary).map(([key, values]) => `
+      <tr>
+        <td>${summaryLabelMap[key] || key}</td>
+        ${values.map(v => {
           if (v === null || v === undefined || v === '') return `<td>-</td>`;
-          if (row.isPercent && typeof v === 'number') {
+          if (percentRows.has(key) && typeof v === 'number') {
             const cls = v >= 0 ? 'delta-pos' : 'delta-neg';
             return `<td class="${cls}">${pct(v)}</td>`;
           }
-          if (typeof v === 'number') {
-            const cls = row.key === 'NW Change' ? (v >= 0 ? 'delta-pos' : 'delta-neg') : '';
-            const signed = row.key === 'NW Change' && v > 0 ? '+' : '';
-            return `<td class="${cls}">${signed}${num(v)}</td>`;
-          }
+          if (typeof v === 'number') return `<td>${num(v)}</td>`;
           return `<td>${v || '-'}</td>`;
         }).join('')}
       </tr>
     `).join('');
 
-    const latestNw = nwSeries[nwSeries.length - 1];
-    const latestChange = nwChangeSeries[nwChangeSeries.length - 1];
-    const latestPct = nwPctSeries[nwPctSeries.length - 1];
-
-    const cards = makeSeriesCards([
-      { label: `Net Worth ${year}`, value: latestNw == null ? '-' : euro(latestNw), sub: 'Ultimo dato disponibile' },
-      { label: 'Monthly Change', value: latestChange == null ? '-' : `${latestChange > 0 ? '+' : ''}${euro(latestChange)}`, className: Number(latestChange || 0) >= 0 ? 'good' : 'bad', sub: 'Variazione ultimo mese' },
-      { label: 'Change %', value: latestPct == null ? '-' : pct(latestPct), className: Number(latestPct || 0) >= 0 ? 'good' : 'bad', sub: 'Momentum mensile' }
-    ]);
-
-    const nwPoints = nwSeries.map((v, idx) => ({ label: cols[idx], value: Number(v || 0) }));
-
-    const sectionOrder = ['Stocks', 'Cash - Liquidity', 'Commodities', 'Finance', 'Simple'];
-    const sectionHtml = sectionOrder
-      .filter(sectionName => yearData.sections[sectionName] && yearData.sections[sectionName].length)
-      .map(sectionName => `
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-kicker">Year ${year}</div>
-              <h3>${sectionName}</h3>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Cur</th>
-                  ${cols.map(col => `<th>${col}</th>`).join('')}
-                </tr>
-              </thead>
-              <tbody>
-                ${yearData.sections[sectionName].map(row => `
-                  <tr>
-                    <td>${row.link ? safeLink(row.link, row.name) : row.name}</td>
-                    <td>${row.currency || '-'}</td>
-                    ${row.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </article>
-      `).join('');
-
     document.getElementById('annualContent').innerHTML = `
-      ${cards}
-      <div class="grid-2">
-        <article class="panel">
-          <div class="panel-kicker">Yearly Trend</div>
-          <h3>Net Worth Trend ${year}</h3>
-          <div class="chart-wrap">${makeLineChart(nwPoints)}</div>
-        </article>
-        <article class="panel">
-          <div class="panel-kicker">Summary Matrix</div>
-          <h3>Riepilogo ${year}</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Voce</th>
-                  ${cols.map(col => `<th>${col}</th>`).join('')}
-                </tr>
-              </thead>
-              <tbody>${summaryRows}</tbody>
-            </table>
-          </div>
-        </article>
-      </div>
+      <article class="panel">
+        <h3>Riepilogo ${year}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Voce</th>
+                ${cols.map(col => `<th>${col}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>${summaryRows}</tbody>
+          </table>
+        </div>
+      </article>
       ${sectionHtml}
     `;
   }
@@ -517,66 +338,43 @@ function renderSterline() {
   function paint(year) {
     const yearData = data.sterlineData[year];
     const cols = ['Start', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const filteredItems = yearData.items.filter(item => !['Total Value', 'Value Change', 'Change %'].includes(item.name));
 
-    const latestValue = yearData.totals.totalValue[yearData.totals.totalValue.length - 1];
-    const latestChange = yearData.totals.valueChange[yearData.totals.valueChange.length - 1];
-    const latestPct = yearData.totals.changePct[yearData.totals.changePct.length - 1];
-
-    const cards = makeSeriesCards([
-      { label: `Sterline ${year}`, value: latestValue == null ? '-' : euro(latestValue), sub: 'Valore totale ultimo dato' },
-      { label: 'Value Change', value: latestChange == null ? '-' : `${latestChange > 0 ? '+' : ''}${euro(latestChange)}`, className: Number(latestChange || 0) >= 0 ? 'good' : 'bad', sub: 'Variazione assoluta' },
-      { label: 'Change %', value: latestPct == null ? '-' : pct(latestPct), className: Number(latestPct || 0) >= 0 ? 'good' : 'bad', sub: 'Variazione percentuale' }
-    ]);
-
-    const totalPoints = yearData.totals.totalValue.map((v, idx) => ({ label: cols[idx], value: Number(v || 0) }));
-
-    const topThreeRows = [
-      { name: 'Total Value', values: yearData.totals.totalValue, emphasis: true },
-      { name: 'Value Change', values: yearData.totals.valueChange },
-      { name: 'Change %', values: yearData.totals.changePct, isPercent: true }
-    ];
-
-    const allRows = [...topThreeRows, ...filteredItems];
-
-    document.getElementById('sterlineContent').innerHTML = `
-      ${cards}
-      <div class="grid-2">
-        <article class="panel">
-          <div class="panel-kicker">Gold Inventory Trend</div>
-          <h3>Valore Totale Sterline ${year}</h3>
-          <div class="chart-wrap">${makeLineChart(totalPoints)}</div>
-        </article>
-        <article class="panel">
-          <div class="panel-kicker">Inventory Ledger</div>
-          <h3>Elenco Sterline ${year}</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Nome</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
-              <tbody>
-                ${allRows.map(item => `
-                  <tr class="${item.emphasis ? 'summary-emphasis' : ''}">
-                    <td>${item.link ? safeLink(item.link, item.name) : item.name}</td>
-                    ${item.values.map(v => {
-                      if (v === null || v === undefined || v === '') return `<td>-</td>`;
-                      if (item.isPercent && typeof v === 'number') {
-                        const cls = v >= 0 ? 'delta-pos' : 'delta-neg';
-                        return `<td class="${cls}">${pct(v)}</td>`;
-                      }
-                      if (item.name === 'Value Change' && typeof v === 'number') {
-                        const cls = v >= 0 ? 'delta-pos' : 'delta-neg';
-                        return `<td class="${cls}">${v > 0 ? '+' : ''}${num(v)}</td>`;
-                      }
-                      return `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`;
-                    }).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </article>
-      </div>
+    const totals = `
+      <article class="panel">
+        <h3>Totali ${year}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Voce</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+            <tbody>
+              <tr><td>Total Value</td>${yearData.totals.totalValue.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}</tr>
+              <tr><td>Value Change</td>${yearData.totals.valueChange.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}</tr>
+              <tr><td>Change %</td>${yearData.totals.changePct.map(v => `<td>${typeof v === 'number' ? pct(v) : (v || '-')}</td>`).join('')}</tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
     `;
+
+    const table = `
+      <article class="panel">
+        <h3>Elenco Sterline ${year}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nome</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${yearData.items.map(item => `
+                <tr>
+                  <td>${item.name}</td>
+                  ${item.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `;
+
+    document.getElementById('sterlineContent').innerHTML = totals + table;
   }
 
   document.querySelectorAll('#sterlineTabs .chip').forEach(btn => {
@@ -746,8 +544,7 @@ const DEFAULT_WATCHLIST = [
     "price": 4470.5,
     "ytd": 0.040594958217918586,
     "lastMonth": 0.040594958217918586,
-    "note": "Importato da 2026",
-    "link": "https://www.bullionbypost.eu/gold-price/one-year-gold-price/"
+    "note": "Importato da 2026"
   },
   {
     "name": "Bitcoin",
@@ -755,8 +552,7 @@ const DEFAULT_WATCHLIST = [
     "price": 56850.21,
     "ytd": -0.23292526277441206,
     "lastMonth": -0.23292526277441206,
-    "note": "Importato da 2026",
-    "link": "https://www.google.com/finance/quote/BTC-EUR?hl=en&window=YTD"
+    "note": "Importato da 2026"
   },
   {
     "name": "Palantir Technologies, Inc.",
@@ -764,8 +560,7 @@ const DEFAULT_WATCHLIST = [
     "price": 73.92,
     "ytd": 3.918163672654691,
     "lastMonth": 0.18708848562710778,
-    "note": "Importato da 2024",
-    "link": "https://www.justetf.com/en/stock-profiles/US69608A1088"
+    "note": "Importato da 2024"
   },
   {
     "name": "SWDA SW",
@@ -773,8 +568,7 @@ const DEFAULT_WATCHLIST = [
     "price": 113.35,
     "ytd": 0.012324729838349535,
     "lastMonth": 0.012324729838349535,
-    "note": "Importato da 2026",
-    "link": "https://www.ishares.com/ch/individual/en/products/251882/ishares-msci-world-ucits-etf-acc-fund"
+    "note": "Importato da 2026"
   },
   {
     "name": "CSSPX SW",
@@ -782,8 +576,7 @@ const DEFAULT_WATCHLIST = [
     "price": 551.04,
     "ytd": -0.10935833198642331,
     "lastMonth": 0.04971996799634226,
-    "note": "Importato da 2025",
-    "link": "https://www.ishares.com/ch/individual/en/products/253743/ishares-sp-500-b-ucits-etf-acc-fund"
+    "note": "Importato da 2025"
   },
   {
     "name": "EIMI SW",
@@ -791,8 +584,7 @@ const DEFAULT_WATCHLIST = [
     "price": 43.51,
     "ytd": 0.06799214531173292,
     "lastMonth": 0.06799214531173292,
-    "note": "Importato da 2026",
-    "link": "https://www.ishares.com/ch/individual/en/products/264659/ishares-msci-emerging-markets-imi-ucits-etf"
+    "note": "Importato da 2026"
   },
   {
     "name": "EURCHF",
@@ -800,8 +592,7 @@ const DEFAULT_WATCHLIST = [
     "price": 0.928,
     "ytd": -0.015906680805938378,
     "lastMonth": -0.0042918454935622075,
-    "note": "Importato da 2025",
-    "link": "https://it.tradingview.com/symbols/EURCHF/"
+    "note": "Importato da 2025"
   },
   {
     "name": "EURUSD",
@@ -809,8 +600,7 @@ const DEFAULT_WATCHLIST = [
     "price": 1.181,
     "ytd": -0.0033755274261603185,
     "lastMonth": -0.0033755274261603185,
-    "note": "Importato da 2026",
-    "link": "https://it.tradingview.com/symbols/EURUSD/"
+    "note": "Importato da 2026"
   },
   {
     "name": "USDCHF",
@@ -818,8 +608,7 @@ const DEFAULT_WATCHLIST = [
     "price": 0.769,
     "ytd": -0.01029601029601035,
     "lastMonth": -0.01029601029601035,
-    "note": "Importato da 2026",
-    "link": "https://it.tradingview.com/symbols/USDCHF/"
+    "note": "Importato da 2026"
   }
 ];
 
@@ -2380,7 +2169,7 @@ function renderWatchlist() {
           <tbody>
             ${items.length ? items.map((item, idx) => `
               <tr>
-                <td>${item.link ? safeLink(item.link, item.name) : item.name}</td>
+                <td>${item.name}</td>
                 <td>${item.ticker || '-'}</td>
                 <td>${num(item.price)}</td>
                 <td class="${Number(item.ytd || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${item.ytd === null || item.ytd === '' ? '-' : pct(item.ytd)}</td>
@@ -2567,7 +2356,7 @@ function renderUpdates() {
               ${latestMonthPositions.length ? latestMonthPositions.map((item, idx) => `
                 <tr>
                   <td>${item.date}</td>
-                  <td>${item.link ? safeLink(item.link, item.name) : item.name}</td>
+                  <td>${item.name}</td>
                   <td>${item.ticker || '-'}</td>
                   <td>${item.category || '-'}</td>
                   <td>${item.quotes === null || item.quotes === undefined ? '-' : num(item.quotes)}</td>
