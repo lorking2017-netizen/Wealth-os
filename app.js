@@ -26,20 +26,6 @@ function monthLabel(dateStr) {
   return d.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' });
 }
 
-function isNetWorthHidden() {
-  return sessionStorage.getItem('wealth-os-hide-networth') !== 'false';
-}
-
-function setNetWorthHidden(hidden) {
-  sessionStorage.setItem('wealth-os-hide-networth', hidden ? 'true' : 'false');
-}
-
-function maskMoney(value) {
-  const formatted = euro(value);
-  const digits = formatted.replace(/[^0-9]/g, '');
-  return '€ ' + '•'.repeat(Math.max(6, digits.length));
-}
-
 function setView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(v => v.classList.remove('active'));
@@ -97,22 +83,14 @@ function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
 
 function renderDashboard() {
   const latest = data.portfolioHistory[data.portfolioHistory.length - 1];
-  const prev = data.portfolioHistory[data.portfolioHistory.length - 2] || latest;
+  const prev = data.portfolioHistory[data.portfolioHistory.length - 2];
   const monthlyDelta = latest.netWorth - prev.netWorth;
-  const hidden = isNetWorthHidden();
 
   const cards = `
     <div class="cards">
-      <article class="card networth-card ${hidden ? 'is-hidden' : ''}" id="netWorthCard" role="button" tabindex="0" aria-label="Mostra o nascondi il patrimonio">
-        <div class="card-head">
-          <h3>Net Worth attuale</h3>
-          <span class="privacy-pill">${hidden ? 'Nascosto' : 'Visibile'}</span>
-        </div>
-        <p class="metric">${hidden ? maskMoney(latest.netWorth) : euro(latest.netWorth)}</p>
-        <div class="metric-sub">${monthLabel(latest.date)} · Tocca per ${hidden ? 'mostrare' : 'nascondere'}</div>
-      </article>
+      <article class="card"><h3>Net Worth attuale</h3><p class="metric">${euro(latest.netWorth)}</p><div class="metric-sub">${monthLabel(latest.date)}</div></article>
       <article class="card"><h3>Crescita totale</h3><p class="metric good">${pct(data.portfolioMetrics.netWorthGrowth)}</p><div class="metric-sub">Da inizio tracking</div></article>
-      <article class="card"><h3>Variazione ultimo mese</h3><p class="metric ${monthlyDelta >= 0 ? 'good' : 'bad'}">${hidden ? maskMoney(Math.abs(monthlyDelta)) : `${monthlyDelta > 0 ? '+' : ''}${euro(monthlyDelta)}`}</p><div class="metric-sub">${pct(data.portfolioMetrics.ytdReturn)} YTD</div></article>
+      <article class="card"><h3>Variazione ultimo mese</h3><p class="metric ${monthlyDelta >= 0 ? 'good' : 'bad'}">${euro(monthlyDelta)}</p><div class="metric-sub">${pct(data.portfolioMetrics.ytdReturn)} YTD</div></article>
       <article class="card"><h3>Max Drawdown</h3><p class="metric bad">${pct(data.portfolioMetrics.maxDrawdown)}</p><div class="metric-sub">Recovery: ${num(data.portfolioMetrics.recoveryTime)} mesi</div></article>
     </div>
   `;
@@ -148,24 +126,16 @@ function renderDashboard() {
       <article class="panel">
         <h3>Asset Allocation attuale</h3>
         <table>
-          <thead><tr><th>Asset</th><th>Current</th><th>Target</th><th>Weight</th></tr></thead>
+          <thead><tr><th>Asset</th><th>Current</th><th>Target</th><th>Delta</th></tr></thead>
           <tbody>
-            ${(() => {
-              const totalAllocation = data.allocationMacro.reduce((sum, row) => sum + Number(row.current || 0), 0);
-
-              return data.allocationMacro.map(row => {
-                const weight = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
-
-                return `
-                  <tr>
-                    <td>${row.asset}</td>
-                    <td>${hidden ? maskMoney(row.current) : euro(row.current)}</td>
-                    <td>${pct(row.targetPct)}</td>
-                    <td>${pct(weight)}</td>
-                  </tr>
-                `;
-              }).join('');
-            })()}
+            ${data.allocationMacro.map(row => `
+              <tr>
+                <td>${row.asset}</td>
+                <td>${euro(row.current)}</td>
+                <td>${pct(row.targetPct)}</td>
+                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
+              </tr>
+            `).join('')}
           </tbody>
         </table>
       </article>
@@ -173,21 +143,6 @@ function renderDashboard() {
   `;
 
   document.getElementById('dashboard').innerHTML = cards + metrics;
-
-  const netWorthCard = document.getElementById('netWorthCard');
-  if (netWorthCard) {
-    const toggle = () => {
-      setNetWorthHidden(!isNetWorthHidden());
-      renderDashboard();
-    };
-    netWorthCard.addEventListener('click', toggle);
-    netWorthCard.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        toggle();
-      }
-    });
-  }
 }
 
 function renderPortfolio() {
@@ -2513,23 +2468,3 @@ function rerenderAll() {
 
 // rerender with enhanced views
 rerenderAll();
-
-
-function initSidebarNavigation() {
-  const layout = document.querySelector('.layout');
-  const toggle = document.getElementById('sidebarToggle');
-  if (toggle && layout) {
-    toggle.addEventListener('click', () => {
-      layout.classList.toggle('sidebar-collapsed');
-    });
-  }
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (window.innerWidth <= 920 && layout) {
-        layout.classList.add('sidebar-collapsed');
-      }
-    });
-  });
-}
-
-initSidebarNavigation();
