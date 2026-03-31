@@ -83,66 +83,152 @@ function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
 
 function renderDashboard() {
   const latest = data.portfolioHistory[data.portfolioHistory.length - 1];
-  const prev = data.portfolioHistory[data.portfolioHistory.length - 2];
-  const monthlyDelta = latest.netWorth - prev.netWorth;
+  const prev = data.portfolioHistory[data.portfolioHistory.length - 2] || latest;
+  const hidden = isNetWorthHidden();
+  const monthlyDelta = Number(latest.netWorth || 0) - Number(prev.netWorth || 0);
 
-  const cards = `
-    <div class="cards">
-      <article class="card"><h3>Net Worth attuale</h3><p class="metric">${euro(latest.netWorth)}</p><div class="metric-sub">${monthLabel(latest.date)}</div></article>
-      <article class="card"><h3>Crescita totale</h3><p class="metric good">${pct(data.portfolioMetrics.netWorthGrowth)}</p><div class="metric-sub">Da inizio tracking</div></article>
-      <article class="card"><h3>Variazione ultimo mese</h3><p class="metric ${monthlyDelta >= 0 ? 'good' : 'bad'}">${euro(monthlyDelta)}</p><div class="metric-sub">${pct(data.portfolioMetrics.ytdReturn)} YTD</div></article>
-      <article class="card"><h3>Max Drawdown</h3><p class="metric bad">${pct(data.portfolioMetrics.maxDrawdown)}</p><div class="metric-sub">Recovery: ${num(data.portfolioMetrics.recoveryTime)} mesi</div></article>
-    </div>
-  `;
+  const totalAllocation = data.allocationMacro.reduce((sum, row) => sum + Number(row.current || 0), 0);
+  const stocksRow = data.allocationMacro.find(x => x.asset === 'Stocks') || { current: 0 };
+  const commoditiesRow = data.allocationMacro.find(x => x.asset === 'Commodities') || { current: 0 };
+  const cashRow = data.allocationMacro.find(x => x.asset === 'Cash') || { current: 0 };
+
+  const stocksPct = totalAllocation ? Number(stocksRow.current || 0) / totalAllocation : 0;
+  const commoditiesPct = totalAllocation ? Number(commoditiesRow.current || 0) / totalAllocation : 0;
+  const cashPct = totalAllocation ? Number(cashRow.current || 0) / totalAllocation : 0;
+
+  const forcedTargets = {
+    Stocks: 0.99,
+    Commodities: 0.00,
+    Cash: 0.01
+  };
+
+  const allocationRows = data.allocationMacro.map(row => {
+    const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
+    const forcedTargetPct = forcedTargets[row.asset] ?? Number(row.targetPct || 0);
+    const targetValue = totalAllocation * forcedTargetPct;
+    const driftEuro = Number(row.current || 0) - targetValue;
+
+    return `
+      <tr>
+        <td>${row.asset}</td>
+        <td>${hidden ? maskMoney(row.current) : euro(row.current)}</td>
+        <td>${pct(actualPct)}</td>
+        <td>${pct(forcedTargetPct)}</td>
+        <td class="${driftEuro >= 0 ? 'delta-pos' : 'delta-neg'}">${hidden ? maskMoney(Math.abs(driftEuro)) : signedEuro(driftEuro)}</td>
+      </tr>
+    `;
+  }).join('');
 
   const equityPoints = data.portfolioHistory.map(item => ({ label: monthLabel(item.date), value: item.netWorth }));
   const drawdownPoints = data.portfolioHistory.map(item => ({ label: monthLabel(item.date), value: item.drawdown * 100 }));
 
-  const metrics = `
-    <div class="grid-2">
-      <article class="panel">
+  document.getElementById('dashboard').innerHTML = `
+    <div class="hero-grid">
+      <article class="hero-card networth-card ${hidden ? 'is-hidden' : ''}" id="netWorthCard" role="button" tabindex="0" aria-label="Mostra o nascondi il patrimonio">
+        <div class="hero-meta">
+          <span class="eyebrow">Primary Metric</span>
+          <span class="privacy-pill">${hidden ? 'Nascosto' : 'Visibile'}</span>
+        </div>
+        <h3>Net Worth</h3>
+        <p class="hero-value">${hidden ? maskMoney(latest.netWorth) : euro(latest.netWorth)}</p>
+        <div class="hero-subline">
+          <span>${monthLabel(latest.date)}</span>
+          <span>Tocca per ${hidden ? 'mostrare' : 'nascondere'}</span>
+        </div>
+      </article>
+
+      <article class="metric-tile">
+        <span class="eyebrow">Monthly Move</span>
+        <p class="metric ${monthlyDelta >= 0 ? 'good' : 'bad'}">${hidden ? maskMoney(Math.abs(monthlyDelta)) : signedEuro(monthlyDelta)}</p>
+        <div class="metric-sub">Ultimo mese vs precedente</div>
+      </article>
+
+      <article class="metric-tile">
+        <span class="eyebrow">YTD Return</span>
+        <p class="metric ${Number(data.portfolioMetrics.ytdReturn || 0) >= 0 ? 'good' : 'bad'}">${pct(data.portfolioMetrics.ytdReturn)}</p>
+        <div class="metric-sub">Performance year-to-date</div>
+      </article>
+
+      <article class="metric-tile">
+        <span class="eyebrow">Risk</span>
+        <p class="metric bad">${pct(data.portfolioMetrics.maxDrawdown)}</p>
+        <div class="metric-sub">Max drawdown · Rec. ${num(data.portfolioMetrics.recoveryTime)}m</div>
+      </article>
+
+      <article class="metric-tile compact">
+        <span class="eyebrow">Stocks</span>
+        <p class="metric">${pct(stocksPct)}</p>
+        <div class="metric-sub">${hidden ? maskMoney(stocksRow.current) : euro(stocksRow.current)}</div>
+      </article>
+
+      <article class="metric-tile compact">
+        <span class="eyebrow">Commodities</span>
+        <p class="metric">${pct(commoditiesPct)}</p>
+        <div class="metric-sub">${hidden ? maskMoney(commoditiesRow.current) : euro(commoditiesRow.current)}</div>
+      </article>
+
+      <article class="metric-tile compact">
+        <span class="eyebrow">Cash</span>
+        <p class="metric">${pct(cashPct)}</p>
+        <div class="metric-sub">${hidden ? maskMoney(cashRow.current) : euro(cashRow.current)}</div>
+      </article>
+    </div>
+
+    <div class="dashboard-grid">
+      <article class="panel main-chart">
+        <div class="panel-kicker">Portfolio Trend</div>
         <h3>Equity Curve</h3>
         <div class="chart-wrap">${makeLineChart(equityPoints)}</div>
       </article>
-      <article class="panel">
-        <h3>Performance / Rischio / Efficienza</h3>
+
+      <article class="panel side-panel">
+        <div class="panel-kicker">Executive Summary</div>
+        <h3>Performance Snapshot</h3>
         <table>
           <tbody>
             <tr><td>Net Worth Growth</td><td>${pct(data.portfolioMetrics.netWorthGrowth)}</td></tr>
             <tr><td>CAGR</td><td>${pct(data.portfolioMetrics.cagr)}</td></tr>
             <tr><td>YTD Return</td><td>${pct(data.portfolioMetrics.ytdReturn)}</td></tr>
-            <tr><td>Volatilità annualizzata</td><td>${pct(data.portfolioMetrics.volatility)}</td></tr>
+            <tr><td>Annual Volatility</td><td>${pct(data.portfolioMetrics.volatility)}</td></tr>
             <tr><td>Sharpe Ratio</td><td>${num(data.portfolioMetrics.sharpe)}</td></tr>
             <tr><td>Calmar Ratio</td><td>${num(data.portfolioMetrics.calmar)}</td></tr>
           </tbody>
         </table>
       </article>
-    </div>
-    <div class="grid-2">
+
       <article class="panel">
+        <div class="panel-kicker">Risk Monitor</div>
         <h3>Drawdown</h3>
         <div class="chart-wrap">${makeLineChart(drawdownPoints, { fill: true, min: Math.min(...drawdownPoints.map(x => x.value), -1), max: 0 })}</div>
       </article>
+
       <article class="panel">
+        <div class="panel-kicker">Allocation Monitor</div>
         <h3>Asset Allocation attuale</h3>
-        <table>
-          <thead><tr><th>Asset</th><th>Current</th><th>Target</th><th>Delta</th></tr></thead>
-          <tbody>
-            ${data.allocationMacro.map(row => `
-              <tr>
-                <td>${row.asset}</td>
-                <td>${euro(row.current)}</td>
-                <td>${pct(row.targetPct)}</td>
-                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Asset</th><th>Valore</th><th>Actual %</th><th>Target %</th><th>Drift €</th></tr></thead>
+            <tbody>${allocationRows}</tbody>
+          </table>
+        </div>
       </article>
     </div>
   `;
 
-  document.getElementById('dashboard').innerHTML = cards + metrics;
+  const netWorthCard = document.getElementById('netWorthCard');
+  if (netWorthCard) {
+    const toggle = () => {
+      setNetWorthHidden(!isNetWorthHidden());
+      renderDashboard();
+    };
+    netWorthCard.addEventListener('click', toggle);
+    netWorthCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggle();
+      }
+    });
+  }
 }
 
 function renderPortfolio() {
@@ -239,35 +325,26 @@ function renderAnnual() {
     <div id="annualContent"></div>
   `;
 
+  function sumSectionRows(rows) {
+    if (!rows || !rows.length) return Array(13).fill(null);
+    const sums = Array(13).fill(0);
+    let hasNumeric = false;
+
+    rows.forEach(row => {
+      row.values.forEach((v, idx) => {
+        if (typeof v === 'number') {
+          sums[idx] += v;
+          hasNumeric = true;
+        }
+      });
+    });
+
+    return hasNumeric ? sums : Array(13).fill(null);
+  }
+
   function paint(year) {
     const yearData = data.annualData[year];
     const cols = ['Start', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    const sectionHtml = Object.entries(yearData.sections).map(([sectionName, rows]) => `
-      <article class="panel">
-        <h3>${sectionName}</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Cur</th>
-                ${cols.map(col => `<th>${col}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map(row => `
-                <tr>
-                  <td>${row.name}</td>
-                  <td>${row.currency || '-'}</td>
-                  ${row.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </article>
-    `).join('');
 
     const summary = yearData.summary;
     const summaryLabelMap = {
@@ -279,12 +356,36 @@ function renderAnnual() {
     };
     const percentRows = new Set(['nwEurPct']);
 
-    const summaryRows = Object.entries(summary).map(([key, values]) => `
-      <tr>
-        <td>${summaryLabelMap[key] || key}</td>
-        ${values.map(v => {
+    const topSummaryRows = [];
+
+    const sectionMap = {
+      'Stocks': 'Stocks Total',
+      'Cash - Liquidity': 'Cash Total',
+      'Commodities': 'Commodities Total'
+    };
+
+    Object.entries(sectionMap).forEach(([sectionName, label]) => {
+      const values = sumSectionRows(yearData.sections[sectionName] || []);
+      if (values.some(v => typeof v === 'number' && v !== 0)) {
+        topSummaryRows.push({ key: label, values, isPercent: false, isEmphasis: true });
+      }
+    });
+
+    Object.entries(summary).forEach(([key, values]) => {
+      topSummaryRows.push({
+        key: summaryLabelMap[key] || key,
+        values,
+        isPercent: percentRows.has(key),
+        isEmphasis: key === 'nwEur'
+      });
+    });
+
+    const summaryRows = topSummaryRows.map(row => `
+      <tr class="${row.isEmphasis ? 'summary-emphasis' : ''}">
+        <td>${row.key}</td>
+        ${row.values.map(v => {
           if (v === null || v === undefined || v === '') return `<td>-</td>`;
-          if (percentRows.has(key) && typeof v === 'number') {
+          if (row.isPercent && typeof v === 'number') {
             const cls = v >= 0 ? 'delta-pos' : 'delta-neg';
             return `<td class="${cls}">${pct(v)}</td>`;
           }
@@ -294,8 +395,67 @@ function renderAnnual() {
       </tr>
     `).join('');
 
+    const orderedSections = ['Stocks', 'Cash - Liquidity', 'Commodities', 'Finance', 'Simple'];
+    const sectionHtml = orderedSections
+      .filter(sectionName => yearData.sections[sectionName] && yearData.sections[sectionName].length)
+      .map(sectionName => {
+        const rows = yearData.sections[sectionName];
+        return `
+          <article class="panel section-panel">
+            <div class="panel-kicker">Year ${year}</div>
+            <h3>${sectionName}</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Cur</th>
+                    ${cols.map(col => `<th>${col}</th>`).join('')}
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows.map(row => `
+                    <tr>
+                      <td>${row.name}</td>
+                      <td>${row.currency || '-'}</td>
+                      ${row.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+    const latestNw = summary.nwEur ? summary.nwEur[summary.nwEur.length - 1] : null;
+    const latestPct = summary.nwEurPct ? summary.nwEurPct[summary.nwEurPct.length - 1] : null;
+    const latestChange = summary.nwEurChange ? summary.nwEurChange[summary.nwEurChange.length - 1] : null;
+
+    const kpis = `
+      <div class="cards annual-kpis">
+        <article class="card accent-card">
+          <h3>Net Worth ${year}</h3>
+          <p class="metric">${latestNw === null || latestNw === undefined ? '-' : euro(latestNw)}</p>
+          <div class="metric-sub">Ultimo dato disponibile</div>
+        </article>
+        <article class="card">
+          <h3>Change ${year}</h3>
+          <p class="metric ${Number(latestChange || 0) >= 0 ? 'good' : 'bad'}">${latestChange === null || latestChange === undefined ? '-' : `${Number(latestChange) > 0 ? '+' : ''}${euro(latestChange)}`}</p>
+          <div class="metric-sub">Variazione dell'ultimo mese</div>
+        </article>
+        <article class="card">
+          <h3>Change %</h3>
+          <p class="metric ${Number(latestPct || 0) >= 0 ? 'good' : 'bad'}">${latestPct === null || latestPct === undefined ? '-' : pct(latestPct)}</p>
+          <div class="metric-sub">Momentum annuale</div>
+        </article>
+      </div>
+    `;
+
     document.getElementById('annualContent').innerHTML = `
-      <article class="panel">
+      ${kpis}
+      <article class="panel section-panel">
+        <div class="panel-kicker">Summary Matrix</div>
         <h3>Riepilogo ${year}</h3>
         <div class="table-wrap">
           <table>
@@ -338,31 +498,58 @@ function renderSterline() {
   function paint(year) {
     const yearData = data.sterlineData[year];
     const cols = ['Start', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const filteredItems = yearData.items.filter(item => !['Total Value', 'Value Change', 'Change %'].includes(item.name));
 
     const totals = `
-      <article class="panel">
+      <article class="panel section-panel">
+        <div class="panel-kicker">Sterling Gold Snapshot</div>
         <h3>Totali ${year}</h3>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Voce</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
             <tbody>
-              <tr><td>Total Value</td>${yearData.totals.totalValue.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}</tr>
-              <tr><td>Value Change</td>${yearData.totals.valueChange.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}</tr>
-              <tr><td>Change %</td>${yearData.totals.changePct.map(v => `<td>${typeof v === 'number' ? pct(v) : (v || '-')}</td>`).join('')}</tr>
+              <tr class="summary-emphasis"><td>Total Value</td>${yearData.totals.totalValue.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}</tr>
+              <tr><td>Value Change</td>${yearData.totals.valueChange.map(v => `<td class="${typeof v === 'number' && v >= 0 ? 'delta-pos' : (typeof v === 'number' ? 'delta-neg' : '')}">${typeof v === 'number' ? `${v > 0 ? '+' : ''}${num(v)}` : (v || '-')}</td>`).join('')}</tr>
+              <tr><td>Change %</td>${yearData.totals.changePct.map(v => `<td class="${typeof v === 'number' && v >= 0 ? 'delta-pos' : (typeof v === 'number' ? 'delta-neg' : '')}">${typeof v === 'number' ? pct(v) : (v || '-')}</td>`).join('')}</tr>
             </tbody>
           </table>
         </div>
       </article>
     `;
 
+    const latestValue = yearData.totals.totalValue[yearData.totals.totalValue.length - 1];
+    const latestChange = yearData.totals.valueChange[yearData.totals.valueChange.length - 1];
+    const latestPct = yearData.totals.changePct[yearData.totals.changePct.length - 1];
+
+    const kpis = `
+      <div class="cards annual-kpis">
+        <article class="card accent-card">
+          <h3>Sterline Value</h3>
+          <p class="metric">${latestValue === null || latestValue === undefined ? '-' : euro(latestValue)}</p>
+          <div class="metric-sub">Ultimo valore disponibile</div>
+        </article>
+        <article class="card">
+          <h3>Monthly Change</h3>
+          <p class="metric ${Number(latestChange || 0) >= 0 ? 'good' : 'bad'}">${latestChange === null || latestChange === undefined ? '-' : `${Number(latestChange) > 0 ? '+' : ''}${euro(latestChange)}`}</p>
+          <div class="metric-sub">Variazione assoluta</div>
+        </article>
+        <article class="card">
+          <h3>Change %</h3>
+          <p class="metric ${Number(latestPct || 0) >= 0 ? 'good' : 'bad'}">${latestPct === null || latestPct === undefined ? '-' : pct(latestPct)}</p>
+          <div class="metric-sub">Momentum ultimo mese</div>
+        </article>
+      </div>
+    `;
+
     const table = `
-      <article class="panel">
+      <article class="panel section-panel">
+        <div class="panel-kicker">Inventory Ledger</div>
         <h3>Elenco Sterline ${year}</h3>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Nome</th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
             <tbody>
-              ${yearData.items.map(item => `
+              ${filteredItems.map(item => `
                 <tr>
                   <td>${item.name}</td>
                   ${item.values.map(v => `<td>${typeof v === 'number' ? num(v) : (v || '-')}</td>`).join('')}
@@ -374,7 +561,7 @@ function renderSterline() {
       </article>
     `;
 
-    document.getElementById('sterlineContent').innerHTML = totals + table;
+    document.getElementById('sterlineContent').innerHTML = kpis + totals + table;
   }
 
   document.querySelectorAll('#sterlineTabs .chip').forEach(btn => {
