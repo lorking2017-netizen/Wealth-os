@@ -29,15 +29,45 @@ function monthLabel(dateStr) {
 function setView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(v => v.classList.remove('active'));
-  document.getElementById(name).classList.add('active');
-  document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
+  const targetView = document.getElementById(name);
+  if (targetView) targetView.classList.add('active');
+  const navBtn = document.querySelector(`.nav-btn[data-view="${name}"]`);
+  if (navBtn) navBtn.classList.add('active');
   document.getElementById('viewTitle').textContent = viewMeta[name][0];
   document.getElementById('viewSubtitle').textContent = viewMeta[name][1];
+
+  const quickSection = document.getElementById('quickSection');
+  if (quickSection) quickSection.value = name;
 }
 
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => setView(btn.dataset.view));
 });
+
+function initQuickNavigation() {
+  const quickSection = document.getElementById('quickSection');
+  const quickYear = document.getElementById('quickYear');
+
+  if (quickSection) {
+    quickSection.addEventListener('change', () => {
+      setView(quickSection.value);
+    });
+  }
+
+  if (quickYear) {
+    quickYear.addEventListener('change', () => {
+      if (!quickYear.value) return;
+      const [view, year] = quickYear.value.split(':');
+      setView(view);
+      setTimeout(() => {
+        const selector = view === 'annual' ? '#annualTabs .chip' : '#sterlineTabs .chip';
+        document.querySelectorAll(selector).forEach(chip => {
+          if (chip.dataset.year === year) chip.click();
+        });
+      }, 60);
+    });
+  }
+}
 
 function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
   if (!points.length) return '<div class="small">Nessun dato.</div>';
@@ -78,20 +108,6 @@ function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
       ${xy.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="${fill ? '#f87171' : '#7dd3fc'}"></circle>`).join('')}
       ${labels}
     </svg>
-  `;
-}
-
-function makeSeriesCards(items) {
-  return `
-    <div class="cards section-cards">
-      ${items.map(item => `
-        <article class="card">
-          <h3>${item.label}</h3>
-          <p class="metric ${item.className || ''}">${item.value}</p>
-          <div class="metric-sub">${item.sub || ''}</div>
-        </article>
-      `).join('')}
-    </div>
   `;
 }
 
@@ -2482,3 +2498,6 @@ function rerenderAll() {
 
 // rerender with enhanced views
 rerenderAll();
+
+
+initQuickNavigation();

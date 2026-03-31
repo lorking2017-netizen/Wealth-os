@@ -383,41 +383,25 @@ button {
 }
 
 
-/* Layout fixes for Finance and Updates: prevent overlapping boxes */
-.form-grid {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
-  align-items: start;
+/* no-sidebar layout */
+.layout.no-sidebar {
+  grid-template-columns: 1fr;
 }
-.form-grid > *,
-.form-grid label,
-.form-grid input,
-.form-grid select {
-  min-width: 0;
+.layout.no-sidebar .main {
+  padding-left: 24px;
+  padding-right: 24px;
 }
-.stack,
-.history-list,
-.summary-list {
-  display: grid;
-  gap: 16px;
+.layout.no-sidebar .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(180deg, #f7f4ee 0%, #efebe3 100%);
+  padding-bottom: 12px;
 }
-.form-card,
-.panel,
-.card,
-.history-item,
-.summary-item {
-  min-width: 0;
-  overflow: hidden;
-}
-.history-item,
-.summary-item,
-.alloc-head,
-.alloc-foot,
-.panel-head,
-.form-actions,
-.actions {
-  flex-wrap: wrap;
-}
-.table-wrap {
-  max-width: 100%;
-  overflow: auto;
+
+@media (max-width: 920px) {
+  .layout.no-sidebar .main {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
 }
