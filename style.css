@@ -251,3 +251,19 @@ button.secondary {
 .networth-card.is-hidden .metric {
   letter-spacing: 0.08em;
 }
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.privacy-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  background: rgba(24,34,53,0.7);
+}

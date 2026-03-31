@@ -27,11 +27,16 @@ function monthLabel(dateStr) {
 }
 
 function isNetWorthHidden() {
-  return localStorage.getItem('wealth-os-hide-networth') !== 'false';
+  if (!window.__wealthOsNetWorthHiddenInitialized) {
+    window.__wealthOsNetWorthHidden = true;
+    window.__wealthOsNetWorthHiddenInitialized = true;
+  }
+  return window.__wealthOsNetWorthHidden;
 }
 
 function setNetWorthHidden(hidden) {
-  localStorage.setItem('wealth-os-hide-networth', hidden ? 'true' : 'false');
+  window.__wealthOsNetWorthHidden = hidden;
+  window.__wealthOsNetWorthHiddenInitialized = true;
 }
 
 function maskMoney(value) {
@@ -104,18 +109,40 @@ function renderDashboard() {
   const cards = `
     <div class="cards">
       <article class="card networth-card ${hidden ? 'is-hidden' : ''}" id="netWorthCard" role="button" tabindex="0" aria-label="Mostra o nascondi il patrimonio">
-        <h3>Net Worth attuale</h3>
+        <div class="card-head">
+          <h3>Net Worth attuale</h3>
+          <span class="privacy-pill">${hidden ? 'Nascosto' : 'Visibile'}</span>
+        </div>
         <p id="netWorthMetric" class="metric">${hidden ? maskMoney(latest.netWorth) : euro(latest.netWorth)}</p>
         <div class="metric-sub">${monthLabel(latest.date)} · Tocca per ${hidden ? 'mostrare' : 'nascondere'}</div>
       </article>
       <article class="card"><h3>Crescita totale</h3><p class="metric good">${pct(data.portfolioMetrics.netWorthGrowth)}</p><div class="metric-sub">Da inizio tracking</div></article>
-      <article class="card"><h3>Variazione ultimo mese</h3><p class="metric ${monthlyDelta >= 0 ? 'good' : 'bad'}">${euro(monthlyDelta)}</p><div class="metric-sub">${pct(data.portfolioMetrics.ytdReturn)} YTD</div></article>
+      <article class="card"><h3>Variazione ultimo mese</h3><p class="metric ${monthlyDelta >= 0 ? 'good' : 'bad'}">${monthlyDelta > 0 ? '+' : ''}${euro(monthlyDelta)}</p><div class="metric-sub">${pct(data.portfolioMetrics.ytdReturn)} YTD</div></article>
       <article class="card"><h3>Max Drawdown</h3><p class="metric bad">${pct(data.portfolioMetrics.maxDrawdown)}</p><div class="metric-sub">Recovery: ${num(data.portfolioMetrics.recoveryTime)} mesi</div></article>
     </div>
   `;
 
   const equityPoints = data.portfolioHistory.map(item => ({ label: monthLabel(item.date), value: item.netWorth }));
   const drawdownPoints = data.portfolioHistory.map(item => ({ label: monthLabel(item.date), value: item.drawdown * 100 }));
+
+  const allocationRows = (() => {
+    const totalAllocation = data.allocationMacro.reduce((sum, row) => sum + Number(row.current || 0), 0);
+
+    return data.allocationMacro.map(row => {
+      const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
+      const drift = actualPct - Number(row.targetPct || 0);
+
+      return `
+        <tr>
+          <td>${row.asset}</td>
+          <td>${euro(row.current)}</td>
+          <td>${pct(actualPct)}</td>
+          <td>${pct(row.targetPct)}</td>
+          <td class="${drift >= 0 ? 'delta-pos' : 'delta-neg'}">${drift > 0 ? '+' : ''}${(drift * 100).toFixed(2)} pp</td>
+        </tr>
+      `;
+    }).join('');
+  })();
 
   const metrics = `
     <div class="grid-2">
@@ -145,25 +172,8 @@ function renderDashboard() {
       <article class="panel">
         <h3>Asset Allocation attuale</h3>
         <table>
-          <thead><tr><th>Asset</th><th>Current</th><th>Target</th><th>Weight</th></tr></thead>
-          <tbody>
-            ${(() => {
-              const totalAllocation = data.allocationMacro.reduce((sum, row) => sum + Number(row.current || 0), 0);
-
-              return data.allocationMacro.map(row => {
-                const weight = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
-
-                return `
-                  <tr>
-                    <td>${row.asset}</td>
-                    <td>${euro(row.current)}</td>
-                    <td>${pct(row.targetPct)}</td>
-                    <td>${pct(weight)}</td>
-                  </tr>
-                `;
-              }).join('');
-            })()}
-          </tbody>
+          <thead><tr><th>Asset</th><th>Valore</th><th>Actual %</th><th>Target %</th><th>Drift</th></tr></thead>
+          <tbody>${allocationRows}</tbody>
         </table>
       </article>
     </div>
