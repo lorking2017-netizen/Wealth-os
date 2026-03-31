@@ -233,3 +233,21 @@ button.secondary {
   .history-item { flex-direction: column; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
 }
+
+
+.networth-card {
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.networth-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(125,211,252,0.45);
+}
+.networth-card:focus {
+  outline: 2px solid rgba(125,211,252,0.55);
+  outline-offset: 2px;
+}
+.networth-card.is-hidden .metric {
+  letter-spacing: 0.08em;
+}

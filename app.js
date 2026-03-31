@@ -17,12 +17,6 @@ function euro(v) {
 function pct(v) {
   return `${(Number(v || 0) * 100).toFixed(2)}%`;
 }
-function allocationGapLabel(delta) {
-  const value = euro(Math.abs(Number(delta || 0)));
-  if (Number(delta || 0) > 0) return `Sopra target di ${value}`;
-  if (Number(delta || 0) < 0) return `Sotto target di ${value}`;
-  return 'In linea col target';
-}
 function num(v) {
   if (v === null || v === undefined || v === '') return '-';
   return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(Number(v));
@@ -30,6 +24,20 @@ function num(v) {
 function monthLabel(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' });
+}
+
+function isNetWorthHidden() {
+  return localStorage.getItem('wealth-os-hide-networth') !== 'false';
+}
+
+function setNetWorthHidden(hidden) {
+  localStorage.setItem('wealth-os-hide-networth', hidden ? 'true' : 'false');
+}
+
+function maskMoney(value) {
+  const formatted = euro(value);
+  const digits = formatted.replace(/[^0-9]/g, '');
+  return '€ ' + '•'.repeat(Math.max(6, digits.length));
 }
 
 function setView(name) {
@@ -89,12 +97,17 @@ function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
 
 function renderDashboard() {
   const latest = data.portfolioHistory[data.portfolioHistory.length - 1];
-  const prev = data.portfolioHistory[data.portfolioHistory.length - 2];
+  const prev = data.portfolioHistory[data.portfolioHistory.length - 2] || latest;
   const monthlyDelta = latest.netWorth - prev.netWorth;
+  const hidden = isNetWorthHidden();
 
   const cards = `
     <div class="cards">
-      <article class="card"><h3>Net Worth attuale</h3><p class="metric">${euro(latest.netWorth)}</p><div class="metric-sub">${monthLabel(latest.date)}</div></article>
+      <article class="card networth-card ${hidden ? 'is-hidden' : ''}" id="netWorthCard" role="button" tabindex="0" aria-label="Mostra o nascondi il patrimonio">
+        <h3>Net Worth attuale</h3>
+        <p id="netWorthMetric" class="metric">${hidden ? maskMoney(latest.netWorth) : euro(latest.netWorth)}</p>
+        <div class="metric-sub">${monthLabel(latest.date)} · Tocca per ${hidden ? 'mostrare' : 'nascondere'}</div>
+      </article>
       <article class="card"><h3>Crescita totale</h3><p class="metric good">${pct(data.portfolioMetrics.netWorthGrowth)}</p><div class="metric-sub">Da inizio tracking</div></article>
       <article class="card"><h3>Variazione ultimo mese</h3><p class="metric ${monthlyDelta >= 0 ? 'good' : 'bad'}">${euro(monthlyDelta)}</p><div class="metric-sub">${pct(data.portfolioMetrics.ytdReturn)} YTD</div></article>
       <article class="card"><h3>Max Drawdown</h3><p class="metric bad">${pct(data.portfolioMetrics.maxDrawdown)}</p><div class="metric-sub">Recovery: ${num(data.portfolioMetrics.recoveryTime)} mesi</div></article>
@@ -132,16 +145,24 @@ function renderDashboard() {
       <article class="panel">
         <h3>Asset Allocation attuale</h3>
         <table>
-          <thead><tr><th>Asset</th><th>Current</th><th>Target</th><th>Delta</th></tr></thead>
+          <thead><tr><th>Asset</th><th>Current</th><th>Target</th><th>Weight</th></tr></thead>
           <tbody>
-            ${data.allocationMacro.map(row => `
-              <tr>
-                <td>${row.asset}</td>
-                <td>${euro(row.current)}</td>
-                <td>${pct(row.targetPct)}</td>
-                <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${allocationGapLabel(row.delta)}</td>
-              </tr>
-            `).join('')}
+            ${(() => {
+              const totalAllocation = data.allocationMacro.reduce((sum, row) => sum + Number(row.current || 0), 0);
+
+              return data.allocationMacro.map(row => {
+                const weight = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
+
+                return `
+                  <tr>
+                    <td>${row.asset}</td>
+                    <td>${euro(row.current)}</td>
+                    <td>${pct(row.targetPct)}</td>
+                    <td>${pct(weight)}</td>
+                  </tr>
+                `;
+              }).join('');
+            })()}
           </tbody>
         </table>
       </article>
@@ -149,6 +170,21 @@ function renderDashboard() {
   `;
 
   document.getElementById('dashboard').innerHTML = cards + metrics;
+
+  const netWorthCard = document.getElementById('netWorthCard');
+  if (netWorthCard) {
+    const toggle = () => {
+      setNetWorthHidden(!isNetWorthHidden());
+      renderDashboard();
+    };
+    netWorthCard.addEventListener('click', toggle);
+    netWorthCard.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggle();
+      }
+    });
+  }
 }
 
 function renderPortfolio() {
@@ -202,7 +238,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${euro(row.targetEur)}</td>
-                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${allocationGapLabel(row.delta)}</td>
+                  <td class="${row.delta >= 0 ? 'delta-pos' : 'delta-neg'}">${euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -223,7 +259,7 @@ function renderAllocation() {
                   <td>${euro(row.current)}</td>
                   <td>${pct(row.targetPct)}</td>
                   <td>${row.targetEur === null ? '-' : euro(row.targetEur)}</td>
-                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : allocationGapLabel(row.delta)}</td>
+                  <td class="${(row.delta || 0) >= 0 ? 'delta-pos' : 'delta-neg'}">${row.delta === null ? '-' : euro(row.delta)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -512,7 +548,6 @@ renderFinance();
 
 const PORTFOLIO_OVERRIDES_KEY = 'wealth-os-portfolio-overrides';
 const ALLOCATION_OVERRIDES_KEY = 'wealth-os-allocation-overrides';
-const ALLOCATION_TARGETS_KEY = 'wealth-os-allocation-targets';
 const POSITION_HISTORY_KEY = 'wealth-os-position-history';
 const WATCHLIST_KEY = 'wealth-os-watchlist';
 
@@ -1961,15 +1996,6 @@ function savePortfolioOverrides(items) { saveJson(PORTFOLIO_OVERRIDES_KEY, items
 function loadAllocationOverrides() { return loadJson(ALLOCATION_OVERRIDES_KEY, []); }
 function saveAllocationOverrides(items) { saveJson(ALLOCATION_OVERRIDES_KEY, items); }
 
-function loadAllocationTargets() {
-  const fallback = {};
-  data.allocationMacro.forEach(row => {
-    fallback[row.asset.toLowerCase()] = Number(row.targetPct || 0);
-  });
-  return loadJson(ALLOCATION_TARGETS_KEY, fallback);
-}
-function saveAllocationTargets(items) { saveJson(ALLOCATION_TARGETS_KEY, items); }
-
 function loadPositionHistory() {
   const existing = loadJson(POSITION_HISTORY_KEY, null);
   if (existing === null) {
@@ -2086,21 +2112,13 @@ function getCurrentAllocationMacro() {
     };
   }
 
-  const targets = loadAllocationTargets();
-  const totalCurrent = Number(values.stocks || 0) + Number(values.commodities || 0) + Number(values.cash || 0);
-
   return baseRows.map(row => {
     const key = row.asset.toLowerCase();
     const current = key in values ? values[key] : Number(row.current || 0);
-    const targetPct = key in targets ? Number(targets[key] || 0) : Number(row.targetPct || 0);
-    const targetEur = totalCurrent * targetPct;
-
     return {
       ...row,
       current,
-      targetPct,
-      targetEur,
-      delta: current - targetEur
+      delta: Number(row.targetEur || 0) - current
     };
   });
 }
@@ -2335,29 +2353,6 @@ function renderUpdates() {
       </article>
 
       <article class="form-card">
-        <h3>Target Asset Allocation</h3>
-        <div class="helper">Modifica direttamente dal sito i target percentuali di Stocks, Commodities e Cash. Devono sommare a 1.00.</div>
-        <form id="targetAllocationForm" class="form-grid">
-          <label>
-            Target Stocks
-            <input type="number" id="targetStocks" step="0.0001" min="0" max="1" value="${(loadAllocationTargets().stocks ?? 0).toFixed(4)}" required />
-          </label>
-          <label>
-            Target Commodities
-            <input type="number" id="targetCommodities" step="0.0001" min="0" max="1" value="${(loadAllocationTargets().commodities ?? 0).toFixed(4)}" required />
-          </label>
-          <label>
-            Target Cash
-            <input type="number" id="targetCash" step="0.0001" min="0" max="1" value="${(loadAllocationTargets().cash ?? 0).toFixed(4)}" required />
-          </label>
-          <div></div>
-          <div class="full form-actions">
-            <button type="submit">Salva target allocation</button>
-          </div>
-        </form>
-      </article>
-
-      <article class="form-card">
         <h3>Watchlist / Strumenti preferiti</h3>
         <div class="helper">Aggiungi o aggiorna manualmente i tuoi strumenti monitorati.</div>
         <form id="watchlistForm" class="form-grid">
@@ -2469,23 +2464,6 @@ function renderUpdates() {
     const items = loadAllocationOverrides().filter(x => x.date !== date);
     items.push(item);
     saveAllocationOverrides(items);
-    rerenderAll();
-    setView('updates');
-  });
-
-  document.getElementById('targetAllocationForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const stocks = Number(document.getElementById('targetStocks').value);
-    const commodities = Number(document.getElementById('targetCommodities').value);
-    const cash = Number(document.getElementById('targetCash').value);
-    const total = stocks + commodities + cash;
-
-    if (Math.abs(total - 1) > 0.0001) {
-      alert('I target devono sommare a 1.00');
-      return;
-    }
-
-    saveAllocationTargets({ stocks, commodities, cash });
     rerenderAll();
     setView('updates');
   });
