@@ -583,3 +583,36 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Stronger fix for first two finance fields overlapping */
+#finance form#txForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+#finance form#txForm > * {
+  min-width: 0;
+  width: 100%;
+}
+
+#finance form#txForm input[type="date"],
+#finance form#txForm select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+#finance form#txForm #txNote,
+#finance form#txForm .full,
+#finance form#txForm div.full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  #finance form#txForm {
+    grid-template-columns: 1fr;
+  }
+}
