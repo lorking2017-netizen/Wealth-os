@@ -518,3 +518,68 @@ button {
     padding-right: 14px;
   }
 }
+
+
+/* Finance / cashflow layout fix */
+#finance .cards {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+#finance .panel {
+  min-width: 0;
+}
+
+#finance .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+#finance .form-grid .full {
+  grid-column: 1 / -1;
+}
+
+#finance input,
+#finance select,
+#finance button {
+  min-width: 0;
+  width: 100%;
+}
+
+#finance .table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+#finance table {
+  width: 100%;
+  min-width: 900px;
+}
+
+#finance td,
+#finance th {
+  white-space: nowrap;
+}
+
+#finance td:nth-child(5),
+#finance th:nth-child(5),
+#finance td:nth-child(7),
+#finance th:nth-child(7) {
+  white-space: normal;
+}
+
+@media (max-width: 900px) {
+  #finance .cards {
+    grid-template-columns: 1fr 1fr;
+  }
+  #finance .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  #finance .cards {
+    grid-template-columns: 1fr;
+  }
+}
