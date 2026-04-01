@@ -383,7 +383,6 @@ button {
 }
 
 
-/* asset allocation charts */
 .donut-layout {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -490,5 +489,32 @@ button {
   .alloc-head, .alloc-foot {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+
+/* remove fixed left sidebar now that top-right navigation exists */
+.layout {
+  grid-template-columns: 1fr !important;
+}
+.sidebar {
+  display: none !important;
+}
+.main {
+  padding-left: 22px;
+  padding-right: 22px;
+}
+.privacy-toggle-card {
+  cursor: pointer;
+  user-select: none;
+}
+.privacy-toggle-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+}
+@media (max-width: 920px) {
+  .main {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 }

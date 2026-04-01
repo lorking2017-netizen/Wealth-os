@@ -12,6 +12,7 @@ const viewMeta = {
 };
 
 function euro(v) {
+  if (isPrivacyHidden()) return '€ ' + maskValue();
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 }).format(Number(v || 0));
 }
 function pct(v) {
@@ -19,20 +20,40 @@ function pct(v) {
 }
 function num(v) {
   if (v === null || v === undefined || v === '') return '-';
+  if (isPrivacyHidden()) return maskValue();
   return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(Number(v));
 }
 function monthLabel(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' });
 }
+function isPrivacyHidden() {
+  return sessionStorage.getItem('wealth-os-privacy-hidden') !== 'false';
+}
+
+function setPrivacyHidden(hidden) {
+  sessionStorage.setItem('wealth-os-privacy-hidden', hidden ? 'true' : 'false');
+}
+
+function togglePrivacyHidden() {
+  setPrivacyHidden(!isPrivacyHidden());
+}
+
+function maskValue() {
+  return '••••••';
+}
+
 
 function setView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(v => v.classList.remove('active'));
   document.getElementById(name).classList.add('active');
-  document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
+  const btn = document.querySelector(`.nav-btn[data-view="${name}"]`);
+  if (btn) btn.classList.add('active');
   document.getElementById('viewTitle').textContent = viewMeta[name][0];
   document.getElementById('viewSubtitle').textContent = viewMeta[name][1];
+  const sectionSelect = document.getElementById('quickSection');
+  if (sectionSelect) sectionSelect.value = name;
 }
 
 document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -81,6 +102,54 @@ function makeLineChart(points, { min = null, max = null, fill = false } = {}) {
   `;
 }
 
+function makeDonutChart(rows, centerLabel = 'Allocazione') {
+  const validRows = rows.filter(row => Number(row.current || 0) > 0);
+  const total = validRows.reduce((sum, row) => sum + Number(row.current || 0), 0) || 1;
+  const palette = ['#8c7350', '#1f7a63', '#b05555', '#9a7c2f', '#6b7280', '#bda27c'];
+  let acc = 0;
+
+  const segments = validRows.map((row, idx) => {
+    const pctValue = Number(row.current || 0) / total;
+    const start = acc;
+    const end = acc + pctValue;
+    acc = end;
+    const largeArc = pctValue > 0.5 ? 1 : 0;
+    const startAngle = start * Math.PI * 2 - Math.PI / 2;
+    const endAngle = end * Math.PI * 2 - Math.PI / 2;
+    const x1 = 50 + 36 * Math.cos(startAngle);
+    const y1 = 50 + 36 * Math.sin(startAngle);
+    const x2 = 50 + 36 * Math.cos(endAngle);
+    const y2 = 50 + 36 * Math.sin(endAngle);
+
+    return {
+      row,
+      pctValue,
+      color: palette[idx % palette.length],
+      path: `M 50 50 L ${x1.toFixed(3)} ${y1.toFixed(3)} A 36 36 0 ${largeArc} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`
+    };
+  });
+
+  return `
+    <div class="donut-layout">
+      <svg viewBox="0 0 100 100" class="donut-chart" aria-label="${centerLabel}">
+        ${segments.map(seg => `<path d="${seg.path}" fill="${seg.color}"></path>`).join('')}
+        <circle cx="50" cy="50" r="18" fill="#ffffff"></circle>
+        <text x="50" y="46" text-anchor="middle" class="donut-total-label">${centerLabel}</text>
+        <text x="50" y="56" text-anchor="middle" class="donut-total-value">${Math.round(total).toLocaleString('it-IT')}</text>
+      </svg>
+      <div class="donut-legend">
+        ${segments.map(seg => `
+          <div class="legend-row">
+            <span class="legend-dot" style="background:${seg.color}"></span>
+            <span class="legend-name">${seg.row.asset}</span>
+            <span class="legend-pct">${pct(seg.pctValue)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderDashboard() {
   const latest = data.portfolioHistory[data.portfolioHistory.length - 1];
   const prev = data.portfolioHistory[data.portfolioHistory.length - 2];
@@ -88,7 +157,7 @@ function renderDashboard() {
 
   const cards = `
     <div class="cards">
-      <article class="card"><h3>Net Worth attuale</h3><p class="metric">${euro(latest.netWorth)}</p><div class="metric-sub">${monthLabel(latest.date)}</div></article>
+      <article class="card privacy-toggle-card" id="privacyToggleCard"><h3>Net Worth attuale</h3><p class="metric">${euro(latest.netWorth)}</p><div class="metric-sub">${monthLabel(latest.date)} · Tocca per ${isPrivacyHidden() ? 'mostrare' : 'nascondere'} tutti gli importi</div></article>
       <article class="card"><h3>Crescita totale</h3><p class="metric good">${pct(data.portfolioMetrics.netWorthGrowth)}</p><div class="metric-sub">Da inizio tracking</div></article>
       <article class="card"><h3>Variazione ultimo mese</h3><p class="metric ${monthlyDelta >= 0 ? 'good' : 'bad'}">${euro(monthlyDelta)}</p><div class="metric-sub">${pct(data.portfolioMetrics.ytdReturn)} YTD</div></article>
       <article class="card"><h3>Max Drawdown</h3><p class="metric bad">${pct(data.portfolioMetrics.maxDrawdown)}</p><div class="metric-sub">Recovery: ${num(data.portfolioMetrics.recoveryTime)} mesi</div></article>
@@ -143,6 +212,13 @@ function renderDashboard() {
   `;
 
   document.getElementById('dashboard').innerHTML = cards + metrics;
+  const privacyToggle = document.getElementById('privacyToggleCard');
+  if (privacyToggle) {
+    privacyToggle.addEventListener('click', () => {
+      togglePrivacyHidden();
+      rerenderAll();
+    });
+  }
 }
 
 function renderPortfolio() {
@@ -198,7 +274,6 @@ function renderAllocation() {
       ${macroRows.map(row => {
         const actualPct = totalAllocation ? Number(row.current || 0) / totalAllocation : 0;
         const driftPct = actualPct - Number(row.targetPct || 0);
-
         return `
           <div class="alloc-row">
             <div class="alloc-head">
@@ -267,7 +342,6 @@ function renderAllocation() {
     </div>
   `;
 }
-
 function renderAnnual() {
   const container = document.getElementById('annual');
   container.innerHTML = `
@@ -446,7 +520,6 @@ function renderSterline() {
 
   paint('2024');
 }
-
 function loadTransactions() {
   const raw = localStorage.getItem(TRANSACTION_KEY);
   if (!raw) {

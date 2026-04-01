@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wealth OS Bank Desk Professional</title>
-  <link rel="stylesheet" href="style.css?v=bankdesk2" />
+  <link rel="stylesheet" href="style.css?v=privacy2" />
 </head>
 <body>
   <div class="layout">
@@ -76,8 +76,8 @@
     </main>
   </div>
 
-  <script src="data.js?v=bankdesk2"></script>
-  <script src="app.js?v=bankdesk2"></script>
+  <script src="data.js?v=privacy2"></script>
+  <script src="app.js?v=privacy2"></script>
 
 <script>
 window.addEventListener('load', () => {
@@ -85,24 +85,33 @@ window.addEventListener('load', () => {
   const yearSelect = document.getElementById('quickYear');
 
   const syncSection = () => {
-    const active = document.querySelector('.nav-btn.active');
-    if (active && sectionSelect) sectionSelect.value = active.dataset.view || 'dashboard';
+    if (typeof setView !== 'function') return;
+    const currentTitle = document.getElementById('viewTitle')?.textContent || '';
+    const map = {
+      'Dashboard': 'dashboard',
+      'Portfolio Engine': 'portfolio',
+      'Asset Allocation': 'allocation',
+      'Assets 2024-2026': 'annual',
+      'Posizioni': 'positions',
+      'Watchlist': 'watchlist',
+      'Sterline': 'sterline',
+      'Entrate / Uscite': 'finance',
+      'Aggiornamenti': 'updates'
+    };
+    if (sectionSelect && map[currentTitle]) sectionSelect.value = map[currentTitle];
   };
 
   if (sectionSelect) {
     sectionSelect.addEventListener('change', () => {
-      const btn = document.querySelector(`.nav-btn[data-view="${sectionSelect.value}"]`);
-      if (btn) btn.click();
+      if (typeof setView === 'function') setView(sectionSelect.value);
     });
   }
 
   if (yearSelect) {
     yearSelect.addEventListener('change', () => {
-      if (!yearSelect.value) return;
+      if (!yearSelect.value || typeof setView !== 'function') return;
       const [view, year] = yearSelect.value.split(':');
-      const btn = document.querySelector(`.nav-btn[data-view="${view}"]`);
-      if (btn) btn.click();
-
+      setView(view);
       setTimeout(() => {
         const tabSelector = view === 'annual' ? '#annualTabs .chip' : '#sterlineTabs .chip';
         document.querySelectorAll(tabSelector).forEach(chip => {
@@ -111,10 +120,6 @@ window.addEventListener('load', () => {
       }, 80);
     });
   }
-
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => setTimeout(syncSection, 30));
-  });
 
   syncSection();
 });
