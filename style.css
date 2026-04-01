@@ -616,3 +616,72 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Extra iPad/Safari fix for date + type fields in finance form */
+#finance form#txForm {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  column-gap: 14px !important;
+  row-gap: 14px !important;
+}
+
+#finance form#txForm > input,
+#finance form#txForm > select {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+#finance form#txForm > input[type="date"] {
+  grid-column: 1 / span 2 !important;
+}
+
+#finance form#txForm > select#txType {
+  grid-column: 3 / span 2 !important;
+}
+
+#finance form#txForm > input#txCategory {
+  grid-column: 5 / span 1 !important;
+}
+
+#finance form#txForm > input#txAccount {
+  grid-column: 6 / span 1 !important;
+}
+
+#finance form#txForm > input#txAmount {
+  grid-column: 1 / span 2 !important;
+}
+
+#finance form#txForm > input#txDescription {
+  grid-column: 3 / span 4 !important;
+}
+
+#finance form#txForm > input#txNote,
+#finance form#txForm > .full,
+#finance form#txForm > div.full {
+  grid-column: 1 / -1 !important;
+}
+
+@media (max-width: 1100px) {
+  #finance form#txForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #finance form#txForm > input[type="date"],
+  #finance form#txForm > select#txType,
+  #finance form#txForm > input#txCategory,
+  #finance form#txForm > input#txAccount,
+  #finance form#txForm > input#txAmount,
+  #finance form#txForm > input#txDescription {
+    grid-column: auto !important;
+  }
+}
+
+@media (max-width: 700px) {
+  #finance form#txForm {
+    grid-template-columns: 1fr !important;
+  }
+}
